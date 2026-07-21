@@ -18,6 +18,13 @@ build/
 .ruff_cache/
 uv.lock.tmp
 
+# Session task-state (per-session, never committed)
+.claude/
+
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# build-step sidecars (never committed)
+.build-step/
+.review-deep/

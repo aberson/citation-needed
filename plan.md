@@ -436,6 +436,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 - **Produces:** pyproject.toml, schema.sql, migrations/, src/citation_needed/{cli,db,models}.py, tests/test_schema.py, .gitignore, LICENSE, README.md
 - **Done when:** `uv run cite init-db` creates all 7 tables + FTS5 index in a fresh `data/citation.db`; `tests/test_schema.py` round-trips a golden details_json blob per artifact_type and asserts pydantic fields == live columns; pytest/ruff/mypy green.
 - **Depends on:** none
+- **Status:** DONE (2026-07-21)
 
 ### Step 2: Artifact discovery + typed ingestion (`cite scan`)
 - **Problem:** Discover and type LLM-facing artifacts: globs for the 5 v1 types (incl. memory dirs under `C:/Users/abero/.claude/projects/*/memory/`, and `.claude/commands/*.md` ingested as `skill`), exclusions (`.venv/`, `node_modules/`, `.git/`, `docs/archived*`, `owned=false` trees via `registry.toml`), pointer detection + resolution (thin-wrapper SKILL.md, pointer plan.md, CLAUDE.md `@path` imports — mechanics in `docs/research/artifact-type-extensions.md`), frontmatter parsing, `project` resolution, `details_json` population, artifact upsert.
