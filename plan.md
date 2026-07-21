@@ -431,7 +431,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 ### Step 1: Scaffold, schema, migrations
 - **Problem:** Create the uv package skeleton: `pyproject.toml` (py3.12+, entry `cite`), `src/citation_needed/` layout, `schema.sql` v1 (the 7 tables + FTS5 virtual table per `docs/research/schema-draft.md` §7 with the four §3.1 amendments), `db.py` init + `PRAGMA user_version` migration loop + WAL/busy_timeout connection defaults, pydantic details models, day-0 `.gitignore` (`data/`, `breakdowns/`, `*.db*`, caches), `LICENSE` (MIT), README stub.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #1
 - **Flags:** --reviewers deep
 - **Produces:** pyproject.toml, schema.sql, migrations/, src/citation_needed/{cli,db,models}.py, tests/test_schema.py, .gitignore, LICENSE, README.md
 - **Done when:** `uv run cite init-db` creates all 7 tables + FTS5 index in a fresh `data/citation.db`; `tests/test_schema.py` round-trips a golden details_json blob per artifact_type and asserts pydantic fields == live columns; pytest/ruff/mypy green.
@@ -440,7 +440,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 ### Step 2: Artifact discovery + typed ingestion (`cite scan`)
 - **Problem:** Discover and type LLM-facing artifacts: globs for the 5 v1 types (incl. memory dirs under `C:/Users/abero/.claude/projects/*/memory/`, and `.claude/commands/*.md` ingested as `skill`), exclusions (`.venv/`, `node_modules/`, `.git/`, `docs/archived*`, `owned=false` trees via `registry.toml`), pointer detection + resolution (thin-wrapper SKILL.md, pointer plan.md, CLAUDE.md `@path` imports — mechanics in `docs/research/artifact-type-extensions.md`), frontmatter parsing, `project` resolution, `details_json` population, artifact upsert.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #2
 - **Flags:** --reviewers code
 - **Produces:** src/citation_needed/discover.py, scan CLI verb, fixture tests for each artifact type + both pointer shapes
 - **Done when:** `cite scan --project coding-root` against the real workspace registers all 5 types with counts matching spot-check fixtures; a thin-wrapper SKILL.md fixture resolves to its pointed-to file (not zero choices); a CLAUDE.md fixture with an `@path` import inlines a non-artifact target AND records-but-skips a target that is itself a scanned artifact (no double-extraction); a `.claude/commands/*.md` fixture registers as `skill`; integration test invokes the production CLI entry, not internals.
@@ -450,7 +450,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 ### Step 3: Citation resolution + anti-fabrication verifier + FTS5 corpus
 - **Problem:** Build the acquisition pipeline: `resolve.py` (S2 search, Crossref with live rate-header throttling, OpenAlex behind `CITATION_NEEDED_OPENALEX_KEY` failing loud when unset-but-reached), `verify.py` (SSRF-guarded injectable fetch seam, normalized substring quote match, `insert_citation()` sole writer with the NOT NULL resolution record), `corpus.py` (FTS5 external-content + sync triggers, `corpus-search` verb).
 - **Type:** code
-- **Issue:** #
+- **Issue:** #3
 - **Flags:** --reviewers deep
 - **Produces:** src/citation_needed/{resolve,verify,corpus}.py, corpus-search CLI verb, unit tests with injectable seam + one live smoke test against a real DOI
 - **Done when:** a fabricated citation (quote absent from fetched text) is structurally rejected with nothing inserted; a real citation (arXiv:2307.03172) round-trips insert→FTS5-hit; SSRF fixtures (loopback/private/redirect-hop) all refuse; live Crossref call throttles from response headers.
@@ -460,7 +460,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 ### Step 4: Review mechanics + breakdown renderer + interpretation guide
 - **Problem:** `cite review open <path>` (creates review_run, emits prior choice_key/summary pairs as JSON) and `cite review commit` (stdin JSON: choices + labels + citation refs → choice upsert with key-reuse + hash fast path + removed-marking, scores with vote shares, derived classification, composite/band in `review.py` as the single implementation), breakdown renderer, `cite report <path>`, and `docs/interpretation-guide.md` v1 (all §4.4 semantics in prose). The `review open`/`review commit` stdin/stdout JSON contracts are documented as JSON Schema files under `docs/contracts/` — the single source the skills (Step 8) validate against. The extraction template's memory-type guidance encodes the §4.1 per-decision splitting rule (different-verdicts test + over-split guard), and its acceptance fixture includes one multi-decision memory that must yield >1 choice and one single-decision memory that must yield exactly 1.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #4
 - **Flags:** --reviewers deep
 - **Produces:** src/citation_needed/{review,breakdown}.py, review/report CLI verbs, docs/contracts/review-open.schema.json, docs/contracts/review-commit.schema.json, docs/interpretation-guide.md, prompts/ v1 templates (extraction, classification)
 - **Done when:** committing the worked-example JSON for `.claude/rules/subagent-economy.md` reproduces the appendix row-set exactly; a second commit with the same choice reworded reuses the choice_key (zero duplicates — the D4 acceptance test); breakdown doc renders with both citation classes labeled; `cite report` surfaces it.
@@ -470,7 +470,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 ### Step 5: Calibration fixtures + gate
 - **Problem:** Freeze the good anchor (snapshot `.claude/rules/code-quality.md` into fixtures/), author the garbage anchor from `docs/research/score-validity.md` §2b **closing its 3 UNVERIFIED rows via real literature searches (or swapping those choices)** with the SYNTHETIC banner intact, and build `calibrate.py`: throwaway-DB copy, the 4 gate assertions (65/35/40/shape), parse-fail >5% ABORT, fingerprint cache (prompt hash, resolved model id, corpus fingerprint, schema version, 30-day advisory), and `review open` hard-refusal without a valid cached calibration.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #5
 - **Flags:** --reviewers deep
 - **Produces:** fixtures/calibration/*.md, src/citation_needed/calibrate.py, calibrate CLI verbs, tests incl. a red-on-garbage self-test (a deliberately broken scorer must fail the gate)
 - **Done when:** gate goes red when fed inverted anchor labels (self-test); `cite review open` refuses with a loud message when no valid calibration is cached or any fingerprint is stale; a calibration run leaves the real DB byte-identical (poisoning test); all 5 garbage-anchor choices carry a verified citation or documented search.
@@ -479,7 +479,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 ### Step 6: Distill engine + queue triage verbs
 - **Problem:** `distill.py`: generate trim/rewrite proposals where every proposal carries citation ids or a documented absence (`literature_searched=1, literature_found=0`), rank via `(1−composite/100) × load_weight`, plus `cite queue list` and `cite queue resolve <id> --keep|--cut|--rewrite` recording operator + timestamp.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #6
 - **Flags:** --reviewers code
 - **Produces:** src/citation_needed/distill.py, queue CLI verbs, prompts/ distill template, tests
 - **Done when:** an unsupported claude_md choice outranks an equally-unsupported skill choice (load-weight test); a well-supported choice yields no queue row; resolve round-trips status + resolved_by; justification NOT NULL enforced.
@@ -488,7 +488,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 ### Step 7: Seed corpus + provenance
 - **Problem:** Build the tracked CC0 seed corpus from the Phase-0 verified citations — Crossref-sourced fields (no abstracts) + OpenAlex-sourced rows only; S2-derived entries re-derived through Crossref/OpenAlex or excluded — with `seed/PROVENANCE.md` naming per-source license terms, and an idempotent `cite seed import`.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #7
 - **Flags:** --reviewers code
 - **Produces:** seed/seed_citations.jsonl, seed/PROVENANCE.md, seed import CLI verb, tests
 - **Done when:** fresh DB + `seed import` twice → no duplicates; FTS5 `corpus-search "lost in the middle"` hits the seeded row; PROVENANCE.md lists every source with its license basis; zero S2-attributed rows present.
@@ -497,7 +497,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 ### Step 8: The four skills (two-repo step)
 - **Problem:** Author `dev/.claude/skills/citation-{review,distill,sweep,triage}/SKILL.md` as thin wrappers over `uv run --project citation-needed cite <verb>` (observatory-doctor idiom): citation-review embeds the §4.1 flow + calibrate mode + stdin JSON contracts; citation-sweep embeds near-duplicate clustering + per-artifact subagent fan-out with terse-verdict returns (subagent-economy.md); citation-distill and citation-triage wrap their verbs. NOTE: SKILL.md files land in the CODING-ROOT repo; any engine tweaks land in citation-needed — two scoped commits, wrong-dir guard applied per repo.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #8
 - **Flags:** --reviewers code
 - **Produces:** 4 SKILL.md files under dev/.claude/skills/, minor CLI adjustments if contract gaps surface
 - **Done when:** each SKILL.md's embedded commands grep-match real CLI verbs (`cite --help` output); frontmatter is the standard 3 fields spelled `user-invocable` (no `argument:`/`user-invokable` drift per `corpus-survey.md` §8); junction-exposure verified (`ls ~/.claude/skills/citation-review/`).
@@ -506,7 +506,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 ### Step 9: End-to-end smoke — calibrate, then one real review
 - **Problem:** Exercise the full production path once with real components (no mocks): run calibration through the skill+CLI pipeline to a green gate, then a real `/citation-review` of `.claude/rules/subagent-economy.md` with live corpus-first lookup and live web verification.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #9
 - **Flags:** --reviewers code
 - **Produces:** a real breakdown doc, real DB rows, a short smoke report in docs/
 - **Done when:** calibration passes the 4-assertion gate on real anchors; the review yields ≥2 choices with both citation classes represented; `git status` of the coding-root repo shows zero modifications to the reviewed target; `cite report` renders the result.
@@ -515,7 +515,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 ### Step 10: Observation run — small real sweep + findings
 - **Problem:** Run `/citation-sweep` over one bounded real scope (the 13 root `.claude/rules/*.md` files) with per-artifact subagent fan-out; capture an observation findings doc: wall-clock + per-API call counts and failures, near-duplicate cluster ratio, corpus-hit-rate curve across the pass, queue output sanity. File issues for anything surfaced rather than fixing in-step.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #10
 - **Flags:** --reviewers code
 - **Produces:** docs/observation-run-1.md, distill_queue rows for the rules corpus
 - **Done when:** the sweep completes all 13 artifacts (or documents each abstention); findings doc contains the four metric families; zero unhandled exceptions (failures are recorded outcomes, not crashes); ranked queue is non-empty and ordered by the §4.4 rank formula.
@@ -526,7 +526,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 
 ### Step M1: Operator UAT — read one breakdown against its target
 - **Source step:** Step 9
-- **Issue:** #
+- **Issue:** #11
 - **Commands:**
   ```powershell
   uv run --project citation-needed cite report .claude/rules/subagent-economy.md
@@ -543,7 +543,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 
 ### Step M2: citation-triage session over the sweep queue
 - **Source step:** Step 10
-- **Issue:** #
+- **Issue:** #12
 - **Commands:**
   ```powershell
   uv run --project citation-needed cite queue list
