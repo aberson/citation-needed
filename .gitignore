@@ -1,0 +1,23 @@
+# Day-0 privacy boundary (plan §7 / public-boundary.md): the compounding corpus and
+# review output never enter git history — exclusion from commit 0, never scrub-later.
+data/
+breakdowns/
+*.db
+*.db-*
+*.sqlite3
+
+# Python / uv
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+uv.lock.tmp
+
+# OS / editor
+.DS_Store
+Thumbs.db
