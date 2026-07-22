@@ -329,15 +329,20 @@ def _count(conn: sqlite3.Connection, table: str) -> int:
     return int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
 
 
-def register_artifact(ws: dict[str, Path], path: str, artifact_type: str = "plan") -> None:
+def register_artifact(
+    ws: dict[str, Path],
+    path: str,
+    artifact_type: str = "plan",
+    project: str = "coding-root",
+) -> None:
     """Directly register an artifact row (mirrors ``cite scan``'s outcome) so review
     open/commit can run against paths the discover walk would not pick up."""
     conn = _connect(ws)
     try:
         conn.execute(
             "INSERT INTO artifacts (path, artifact_type, project, current_content_hash, "
-            "first_seen_at) VALUES (?, ?, 'coding-root', 'cafe', '2026-07-21T00:00:00Z')",
-            (path, artifact_type),
+            "first_seen_at) VALUES (?, ?, ?, 'cafe', '2026-07-21T00:00:00Z')",
+            (path, artifact_type, project),
         )
         conn.commit()
     finally:

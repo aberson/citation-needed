@@ -490,6 +490,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 - **Produces:** src/citation_needed/distill.py, queue CLI verbs, prompts/ distill template, tests
 - **Done when:** an unsupported claude_md choice outranks an equally-unsupported skill choice (load-weight test); a well-supported choice yields no queue row; resolve round-trips status + resolved_by; justification NOT NULL enforced.
 - **Depends on:** 4
+- **Status:** DONE (2026-07-21)
 
 ### Step 7: Seed corpus + provenance
 - **Problem:** Build the tracked CC0 seed corpus from the Phase-0 verified citations — Crossref-sourced fields (no abstracts) + OpenAlex-sourced rows only; S2-derived entries re-derived through Crossref/OpenAlex or excluded — with `seed/PROVENANCE.md` naming per-source license terms, and an idempotent `cite seed import`.

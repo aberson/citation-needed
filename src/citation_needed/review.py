@@ -51,7 +51,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from citation_needed import resolve, verify
+from citation_needed import distill, resolve, verify
 
 # ---------------------------------------------------------------------------
 # §4.4 scoring constants — the single source of truth (interpretation guide v1)
@@ -874,6 +874,11 @@ def commit_review(
     path escape inside ``insert_citation`` — rolls back everything and the run stays
     uncommitted. ``memory_root`` confines ``memory:``-scheme internal-read citations
     (defaults to the real per-project memory root inside ``verify``).
+
+    The same transaction runs :func:`distill.supersede_stale_open_rows` — open
+    distill-queue rows this commit no longer justifies are purged atomically with
+    the commit, so ``cite queue list`` never shows a superseded recommendation
+    (distill.py § supersession owns the contract).
     """
     if isinstance(payload, dict):
         payload = CommitPayload.model_validate(payload)
@@ -996,6 +1001,13 @@ def commit_review(
                     (finished_at, choice_id),
                 )
                 removed_keys.append(key)
+        # Queue lifecycle: OPEN distill-queue rows are DERIVED state — purge any this
+        # commit no longer justifies (choice removed, or no longer needs-improvement)
+        # inside this SAME transaction, so there is no window where `cite queue list`
+        # shows a stale row after a commit. This is the one seam where the reference
+        # run is by construction the artifact's newest committed state. Resolved rows
+        # are immutable audit and survive (distill.py § supersession).
+        distill.supersede_stale_open_rows(conn, artifact_id, run_id)
         conn.execute(
             "UPDATE review_runs SET finished_at = ?, composite = ?, composite_band = ?, "
             "interpretation_guide_version = ? WHERE id = ?",

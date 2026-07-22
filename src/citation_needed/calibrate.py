@@ -36,8 +36,12 @@ intended behavior.
 
 Fingerprint cache (``data/calibration-fingerprint.json`` — gitignored with the rest
 of ``data/``): recalibration is not a per-session tax. The cache stores five
-fingerprints — **A** sha256 over the ``prompts/`` template files (sorted filenames,
-names + contents concatenated), **B** the caller-supplied resolved model id, **C**
+fingerprints — **A** sha256 over the SCORER prompt template files (the
+:data:`FINGERPRINT_A_TEMPLATE_STEMS` families — extraction + classification; sorted
+filenames, names + contents concatenated; distill templates are deliberately OUT of
+scope — they draft proposals from already-committed scores and cannot move a
+composite, so adding/editing one must not invalidate an existing calibration),
+**B** the caller-supplied resolved model id, **C**
 the corpus fingerprint (``citations`` row count + max id), **D** the schema
 ``PRAGMA user_version``, **E** sha256 over the two frozen anchor fixtures'
 LF-normalized content (an anchor edit after a PASS must invalidate the cache) —
@@ -139,17 +143,39 @@ def _format_ts(moment: datetime) -> str:
 # ---------------------------------------------------------------------------
 
 
+#: Fingerprint **A** scope: the template families that feed the SCORER (a file
+#: belongs to a family when its name starts ``<stem>.``, e.g. ``extraction.v1.md``).
+#: The distill family is deliberately EXCLUDED — distill templates draft proposals
+#: from already-committed scores and cannot move a composite, so adding/editing
+#: ``prompts/distill.v*.md`` must not invalidate an existing calibration (Step 6).
+#: tests/test_distill.py pins this scope.
+FINGERPRINT_A_TEMPLATE_STEMS = ("classification", "extraction")
+
+
+def fingerprint_a_files(prompts_dir: Path = PROMPTS_DIR) -> list[Path]:
+    """The template files in fingerprint A's scope, sorted by filename."""
+    return [
+        file
+        for file in sorted(prompts_dir.glob("*.md"))
+        if file.name.split(".", 1)[0] in FINGERPRINT_A_TEMPLATE_STEMS
+    ]
+
+
 def prompts_fingerprint(prompts_dir: Path = PROMPTS_DIR) -> str:
-    """Fingerprint **A**: sha256 over the prompt template files, sorted by filename,
+    """Fingerprint **A**: sha256 over the SCORER prompt template files (the
+    :data:`FINGERPRINT_A_TEMPLATE_STEMS` families only), sorted by filename,
     filenames + contents concatenated (a rename alone also invalidates — the skill
-    layer loads templates by name). Fails LOUD on an empty/missing prompts dir —
-    hashing nothing would silently bless a calibration that covered no prompts
+    layer loads templates by name). Non-scorer templates (``distill.v*.md``) are
+    out of scope by design. Fails LOUD when no in-scope template exists — hashing
+    nothing would silently bless a calibration that covered no prompts
     (measurement-validity: fail loud on fallback config)."""
-    files = sorted(prompts_dir.glob("*.md"))
+    files = fingerprint_a_files(prompts_dir)
     if not files:
         raise CalibrationError(
-            f"no prompt templates found under {prompts_dir.as_posix()} — refusing to "
-            "fingerprint an empty prompts dir (fingerprint A would bless nothing)"
+            f"no prompt templates in fingerprint-A scope "
+            f"({'/'.join(FINGERPRINT_A_TEMPLATE_STEMS)} families) found under "
+            f"{prompts_dir.as_posix()} — refusing to fingerprint "
+            "(fingerprint A would bless nothing)"
         )
     digest = hashlib.sha256()
     for file in files:
@@ -238,7 +264,7 @@ class CalibrationFingerprint(_CacheBase):
     """
 
     version: int = 2  # v2 added fingerprint E + the accepted-aged audit stamp
-    prompts_sha256: str  # A — prompt template hash
+    prompts_sha256: str  # A — scorer prompt template hash (extraction + classification)
     model_id: str  # B — resolved model id (caller-supplied string)
     corpus_fingerprint: str  # C — "<citations count>:<max id>"
     schema_user_version: int  # D — PRAGMA user_version
@@ -908,6 +934,7 @@ def run_calibration(
 __all__ = [
     "CALIBRATION_FIXTURES_DIR",
     "EXPECTED_LABELS_FILENAME",
+    "FINGERPRINT_A_TEMPLATE_STEMS",
     "FINGERPRINT_FILENAME",
     "GARBAGE_ANCHOR_ARTIFACT_PATH",
     "GARBAGE_ANCHOR_FILENAME",
@@ -935,6 +962,7 @@ __all__ = [
     "anchors_fingerprint",
     "check_calibration",
     "corpus_fingerprint",
+    "fingerprint_a_files",
     "fingerprint_path",
     "load_expected_labels",
     "load_fingerprint",

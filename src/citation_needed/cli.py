@@ -22,6 +22,16 @@ Purely mechanical verbs (the CLI never calls an LLM). v1 verbs:
 - ``cite calibrate commit`` — read the two anchor payloads from STDIN, run the 4-assertion
   gate on a throwaway DB, cache the fingerprint on PASS (exit 0 pass / 1 gate-fail /
   2 parse-fail-abort; the real DB is read via an atomic backup snapshot, never written)
+- ``cite distill generate`` — mechanical distill_queue rows for a committed run's
+  needs-improvement choices (contradicted -> 'rewrite', unsupported -> 'trim';
+  well-supported/interesting yield no row)
+- ``cite distill propose`` — read skill-drafted proposal JSON from STDIN (Windows 32K
+  argv limit), upsert queue rows over the mechanical defaults (whole-payload reject)
+- ``cite queue list``      — ranked distill_queue table (rank desc; default status open)
+- ``cite queue resolve``   — record the operator decision on one row: --keep ->
+  status 'rejected' (proposal declined, target text stays); --cut/--rewrite ->
+  status 'accepted' ('applied' is out of scope — target edits happen outside
+  citation-needed)
 """
 
 from __future__ import annotations
@@ -36,7 +46,17 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from citation_needed import breakdown, calibrate, corpus, db, discover, resolve, review, verify
+from citation_needed import (
+    breakdown,
+    calibrate,
+    corpus,
+    db,
+    discover,
+    distill,
+    resolve,
+    review,
+    verify,
+)
 from citation_needed.models import DETAILS_MODELS
 
 _DB_HELP = "Path to the SQLite database (default: data/citation.db under the project root)."
@@ -317,6 +337,125 @@ def _build_parser() -> argparse.ArgumentParser:
         "removed when the command finishes; pass a dir to keep it for inspection).",
     )
     p_cal_commit.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_distill = subparsers.add_parser(
+        "distill",
+        help="Distill-proposal mechanics: generate (mechanical defaults) / "
+        "propose (skill-drafted stdin payload).",
+    )
+    distill_sub = p_distill.add_subparsers(dest="distill_command", required=True)
+
+    # Derived from distill.LOAD_WEIGHTS — the single source of truth; a re-typed
+    # literal here is exactly the drift code-quality.md § one-source-of-truth bans.
+    load_weights_text = ", ".join(
+        f"{artifact_type} {weight}" for artifact_type, weight in distill.LOAD_WEIGHTS.items()
+    )
+    p_dist_generate = distill_sub.add_parser(
+        "generate",
+        help="Create/refresh mechanical-default queue rows for a committed run's "
+        "needs-improvement choices.",
+        description="For each needs-improvement choice of the committed run: "
+        "contradicted majority -> proposal_kind 'rewrite', unsupported majority -> "
+        "'trim', rank = (1 - composite/100) * load weight (per-choice composite; "
+        f"load weights v1: {load_weights_text}). "
+        "Justification is built from the choice's linked citation ids or its "
+        "documented absence; a choice with neither rejects the whole run loudly. "
+        "Well-supported and interesting choices yield no row. One row per choice: "
+        "an open row is refreshed in place; a resolved row is skipped untouched.",
+    )
+    p_dist_generate.add_argument(
+        "--run", type=int, required=True, help="Committed review run id (from `cite review open`)."
+    )
+    p_dist_generate.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_dist_propose = distill_sub.add_parser(
+        "propose",
+        help="Read skill-drafted distill proposals JSON from STDIN; upsert queue rows.",
+        description="STDIN JSON (stdin, not argv — Windows 32K argv limit): "
+        '{"run_id": <id>, "proposals": [{"choice_key", "proposal_kind", '
+        '"justification", "justifying_citation_ids", "suggested_rewrite"}]}. '
+        "Upserts over the mechanical defaults for the same choices (status stays "
+        "'open'; rank stays formula-computed). Whole-payload reject on ANY invalid "
+        "entry: unscored choice_key, citation id absent from the corpus, a resolved "
+        "queue row, or a 'rewrite' proposal without suggested_rewrite. Output "
+        "contract source: prompts/distill.v1.md.",
+    )
+    p_dist_propose.add_argument(
+        "--run",
+        type=int,
+        default=None,
+        help="Committed review run id (or supply run_id in the payload).",
+    )
+    p_dist_propose.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_queue = subparsers.add_parser(
+        "queue",
+        help="Distill-queue triage: list (ranked table) / resolve (record the operator decision).",
+    )
+    queue_sub = p_queue.add_subparsers(dest="queue_command", required=True)
+
+    p_queue_list = queue_sub.add_parser(
+        "list",
+        help="Ranked distill_queue table (rank desc; default status open).",
+        description="Lists queue rows ranked by urgency (rank desc, id asc): id, "
+        "rank, per-choice composite + band, proposal kind, status, artifact path, "
+        "choice_key, and the justification's first line.",
+    )
+    p_queue_list.add_argument(
+        "--status",
+        choices=list(distill.QUEUE_STATUSES),
+        default="open",
+        help="Filter by status (default: open — the triage backlog).",
+    )
+    p_queue_list.add_argument(
+        "--project", default=None, help="Only rows whose artifact belongs to this project slug."
+    )
+    p_queue_list.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_queue_resolve = queue_sub.add_parser(
+        "resolve",
+        help="Record the operator decision on one open row: --keep -> rejected; "
+        "--cut/--rewrite -> accepted.",
+        description="Decision -> status mapping: --keep records status 'rejected' "
+        "(the proposal is declined; the target text stays). --cut and --rewrite "
+        "both record status 'accepted' (the proposal proceeds; WHICH edit shape is "
+        "the row's proposal_kind — run `cite distill propose` first if the kind "
+        "should change). The 'applied' transition is OUT of scope: target edits "
+        "happen outside citation-needed (the queue records decisions, not edits). "
+        "Stores resolved_by (--by, else env USERNAME/USER) + resolved_at (pipeline "
+        "clock).",
+    )
+    p_queue_resolve.add_argument(
+        "id", type=int, help="distill_queue row id (from `cite queue list`)."
+    )
+    decision_group = p_queue_resolve.add_mutually_exclusive_group(required=True)
+    decision_group.add_argument(
+        "--keep",
+        action="store_const",
+        const="keep",
+        dest="decision",
+        help="Decline the proposal; keep the target text -> status 'rejected'.",
+    )
+    decision_group.add_argument(
+        "--cut",
+        action="store_const",
+        const="cut",
+        dest="decision",
+        help="Accept cutting the text -> status 'accepted'.",
+    )
+    decision_group.add_argument(
+        "--rewrite",
+        action="store_const",
+        const="rewrite",
+        dest="decision",
+        help="Accept rewriting the text -> status 'accepted'.",
+    )
+    p_queue_resolve.add_argument(
+        "--by",
+        default=None,
+        help="Resolver identity recorded as resolved_by (default: env USERNAME, then USER).",
+    )
+    p_queue_resolve.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
 
     return parser
 
@@ -869,6 +1008,140 @@ def _cmd_calibrate_commit(
     return 1
 
 
+def _print_queue_writes(writes: Sequence[distill.QueueWrite]) -> None:
+    for write in writes:
+        print(
+            f"  [{write.queue_id}] {write.choice_key} -> {write.proposal_kind}, "
+            f"rank {write.rank:.2f} ({write.outcome})"
+        )
+
+
+def _cmd_distill_generate(db_path: Path, run_id: int) -> int:
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    conn = db.connect(db_path)
+    try:
+        try:
+            result = distill.generate_queue_rows(conn, run_id)
+        except (distill.DistillError, sqlite3.Error) as exc:
+            print(f"error: {exc}")
+            return 1
+    finally:
+        conn.close()
+    print(
+        f"Distill queue for run #{result.run_id} ({result.artifact_path}, {result.artifact_type}):"
+    )
+    _print_queue_writes(result.writes)
+    if result.skipped_resolved:
+        print(
+            f"  skipped {len(result.skipped_resolved)} resolved row(s): "
+            f"{', '.join(result.skipped_resolved)} (recorded decisions stand)"
+        )
+    print(
+        f"  {result.no_row_count} choice(s) yielded no row (well-supported/interesting); "
+        f"{len(result.writes)} row(s) written"
+    )
+    return 0
+
+
+def _cmd_distill_propose(db_path: Path, run_flag: int | None) -> int:
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    data, stdin_error = _read_stdin_json("cite distill propose")
+    if stdin_error is not None:
+        print(stdin_error)
+        return 1
+    try:
+        payload = distill.ProposePayload.model_validate(data)
+    except ValidationError as exc:
+        print(f"error: payload does not match the distill-propose contract: {exc}")
+        return 1
+    if run_flag is not None and payload.run_id is not None and run_flag != payload.run_id:
+        print(f"error: --run {run_flag} conflicts with payload run_id {payload.run_id}")
+        return 1
+    run_id = run_flag if run_flag is not None else payload.run_id
+    if run_id is None:
+        print("error: no run id — pass --run <id> or include run_id in the payload")
+        return 1
+    conn = db.connect(db_path)
+    try:
+        try:
+            result = distill.propose_queue_rows(conn, run_id, payload)
+        except (distill.DistillError, sqlite3.Error) as exc:
+            print(f"error: {exc}")
+            return 1
+    finally:
+        conn.close()
+    print(
+        f"Upserted {len(result.writes)} proposal(s) for run #{result.run_id} "
+        f"({result.artifact_path}, {result.artifact_type}); status stays 'open':"
+    )
+    _print_queue_writes(result.writes)
+    return 0
+
+
+def _cmd_queue_list(db_path: Path, status: str, project: str | None) -> int:
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    conn = db.connect(db_path)
+    try:
+        try:
+            rows = distill.list_queue(conn, status=status, project=project)
+        except (distill.DistillError, sqlite3.Error) as exc:
+            print(f"error: {exc}")
+            return 1
+    finally:
+        conn.close()
+    scope = f"status {status}" + (f", project {project}" if project is not None else "")
+    if not rows:
+        print(f"No distill-queue rows match ({scope}).")
+        return 0
+    print(f"{len(rows)} distill-queue row(s) ({scope}; rank desc):")
+    for row in rows:
+        first_line = row.justification.splitlines()[0] if row.justification else ""
+        if len(first_line) > 80:
+            first_line = first_line[:77] + "..."
+        # Display-side staleness guard: the row's source run is no longer the
+        # artifact's newest committed run (distill.py § supersession).
+        marker = "  [superseded run]" if row.superseded_run else ""
+        print(
+            f"  [{row.queue_id}] rank {row.rank:.2f}  composite {row.composite:.1f} "
+            f"({row.composite_band})  {row.proposal_kind}  {row.status}  "
+            f"{row.artifact_path} :: {row.choice_key}{marker}"
+        )
+        print(f"      {first_line}")
+    return 0
+
+
+def _cmd_queue_resolve(db_path: Path, queue_id: int, decision: str, by: str | None) -> int:
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    conn = db.connect(db_path)
+    try:
+        try:
+            resolved_by = distill.default_resolver_name(by)
+            outcome = distill.resolve_queue_item(conn, queue_id, decision, resolved_by=resolved_by)
+        except (distill.DistillError, sqlite3.Error) as exc:
+            print(f"error: {exc}")
+            return 1
+    finally:
+        conn.close()
+    print(
+        f"Resolved distill-queue row #{outcome.queue_id} "
+        f"({outcome.artifact_path} :: {outcome.choice_key}): --{outcome.decision} -> "
+        f"status '{outcome.status}' (by {outcome.resolved_by} at {outcome.resolved_at})."
+    )
+    print(
+        "Target edits happen outside citation-needed — the queue records decisions, "
+        "not edits ('applied' is out of the CLI's scope)."
+    )
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Entry point for the ``cite`` console script. Returns a process exit code."""
     args = _build_parser().parse_args(argv)
@@ -908,6 +1181,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.db, args.model, args.workspace_root, args.memory_root, args.throwaway_dir
             )
         raise AssertionError(f"unreachable: unknown calibrate command {args.calibrate_command!r}")
+    if args.command == "distill":
+        if args.distill_command == "generate":
+            return _cmd_distill_generate(args.db, args.run)
+        if args.distill_command == "propose":
+            return _cmd_distill_propose(args.db, args.run)
+        raise AssertionError(f"unreachable: unknown distill command {args.distill_command!r}")
+    if args.command == "queue":
+        if args.queue_command == "list":
+            return _cmd_queue_list(args.db, args.status, args.project)
+        if args.queue_command == "resolve":
+            return _cmd_queue_resolve(args.db, args.id, args.decision, args.by)
+        raise AssertionError(f"unreachable: unknown queue command {args.queue_command!r}")
     raise AssertionError(f"unreachable: unknown command {args.command!r}")
 
 

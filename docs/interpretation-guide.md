@@ -135,12 +135,68 @@ rank = (1 − composite/100) × artifact_load_weight
 Higher rank = more urgent. An unsupported CLAUDE.md-inline choice outranks an equally
 unsupported skill choice for triage attention.
 
+`composite` in the rank formula is the **per-choice composite** stored on the choice's
+`scores` row (each queue row is one choice), so within the same tier a `contradicted`
+choice (composite 0 → rank = weight) outranks an `unsupported` one (composite 25 →
+rank = 0.75 × weight). The single code implementation of the formula and the weight
+table is `distill.py` (`LOAD_WEIGHTS` / `queue_rank`); the table above is tested
+against it for drift.
+
+### Mechanical proposal defaults (`cite distill generate`)
+
+Only **needs-improvement** choices get a queue row — well-supported and interesting
+choices yield NO row (a backlog entry for a fine choice is noise, not signal). The
+mechanical default kind comes from the majority label:
+
+| Majority label | Default `proposal_kind` |
+|---|---|
+| `contradicted` | `rewrite` (evidence argues against the text — replace it) |
+| `unsupported` | `trim` (a real search found nothing — the text earns no load cost) |
+
+The row's justification is built from the choice's real record — its linked citation
+ids, or its documented absence (`literature_searched=1` + the queries tried). A choice
+with **neither** rejects the whole generate run loudly: a justification cannot be
+fabricated (`distill_queue.justification` is NOT NULL by design). One row per choice:
+re-generating or re-proposing refreshes the open row in place (no duplicates); a
+resolved row is never touched. The skill layer can override kind + justification via
+`cite distill propose` (contract: `prompts/distill.v1.md`); rank always stays
+formula-computed.
+
+**Queue lifecycle across re-reviews (supersession).** Open rows are derived state —
+an unresolved row carries no operator decision, so it never outlives its evidence. A
+re-review commit purges, inside the same transaction, every open row of the artifact
+that the just-committed run no longer justifies: the choice was removed from the
+artifact, or its newest classification is anything but `needs-improvement`. Resolved
+rows (`accepted`/`rejected`/`applied`) are immutable audit and always survive. As a
+display-side guard, `cite queue list` appends `[superseded run]` to any row whose
+source run is no longer the artifact's newest committed run — a still-flagged choice
+loses the marker the next time `cite distill generate` refreshes its row against the
+new run. The single implementation is `distill.supersede_stale_open_rows`, called
+from `review.commit_review`.
+
+### Resolution mapping (`cite queue resolve`)
+
+The status enum is `open | accepted | rejected | applied`. The operator decision maps:
+
+| Decision | `status` | Meaning |
+|---|---|---|
+| `--keep` | `rejected` | Proposal declined; the target text stays. |
+| `--cut` | `accepted` | Proposal proceeds; the text should be cut. |
+| `--rewrite` | `accepted` | Proposal proceeds; the text should be rewritten. |
+
+`--cut` and `--rewrite` both land on `accepted` — WHICH edit shape is recorded by the
+row's `proposal_kind` (run `cite distill propose` first if the kind should change).
+Every resolution stores `resolved_by` (`--by`, else env `USERNAME`/`USER`) and
+`resolved_at` (pipeline clock). The `applied` transition is **out of the CLI's
+scope**: target edits happen outside citation-needed (the engine never edits a
+target), so `applied` is reserved for whatever tool performs the edit.
+
 ## Versioning policy
 
 - `v1` is defined by this page: the four labels + weights, vote-share storage,
   k ≥ 3 majority with the 3→5→7 escalation ladder, parse-fail force-scoring, the
-  classification map, the composite rescale, the 70/40/20 bands, and the load-weight
-  table above.
+  classification map, the composite rescale, the 70/40/20 bands, the load-weight
+  table, the mechanical proposal defaults, and the resolution mapping above.
 - Any change to any of these cutpoints or semantics ships as `v2` (a new page section or
   file revision), and new rows stamp `v2` — existing rows keep `v1` and keep meaning what
   `v1` says. Comparisons across guide versions are done explicitly, never by pretending
