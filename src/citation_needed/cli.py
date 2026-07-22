@@ -2,10 +2,13 @@
 
 Purely mechanical verbs (the CLI never calls an LLM). v1 verbs:
 
-- ``cite init-db``  — execute schema.sql against a brand-new DB (no-op if initialized)
-- ``cite migrate``  — apply pending migrations/000N_*.sql in filename order
-- ``cite status``   — per-table row counts + schema version; WAL-checkpoints the DB
-- ``cite scan``     — discover + type LLM-facing artifacts, upsert into ``artifacts``
+- ``cite init-db``       — execute schema.sql against a brand-new DB (no-op if initialized)
+- ``cite migrate``       — apply pending migrations/000N_*.sql in filename order
+- ``cite status``        — per-table row counts + schema version; WAL-checkpoints the DB
+- ``cite scan``          — discover + type LLM-facing artifacts, upsert into ``artifacts``
+- ``cite corpus-search`` — FTS5 BM25 lookup over the verified citations corpus (read-only)
+- ``cite resolve``       — tiered live resolution (S2 -> Crossref -> OpenAlex); READ-ONLY,
+  writes nothing — citations are inserted only through review flows
 """
 
 from __future__ import annotations
@@ -18,7 +21,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from citation_needed import db, discover
+from citation_needed import corpus, db, discover, resolve
 from citation_needed.models import DETAILS_MODELS
 
 _DB_HELP = "Path to the SQLite database (default: data/citation.db under the project root)."
@@ -66,6 +69,39 @@ def _build_parser() -> argparse.ArgumentParser:
         "Mainly for hermetic tests.",
     )
     p_scan.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_corpus = subparsers.add_parser(
+        "corpus-search",
+        help="FTS5 BM25 search over the verified citations corpus (read-only).",
+        description="Corpus-first lookup: BM25-ranked FTS5 MATCH over citations_fts. "
+        "User input is term-extracted, never passed to FTS5 raw. Read-only.",
+    )
+    p_corpus.add_argument("query", help="Free-text query; salient terms are extracted.")
+    p_corpus.add_argument(
+        "--category",
+        default=None,
+        help="Constrain hits to citations whose keywords mention this category.",
+    )
+    p_corpus.add_argument(
+        "--limit", type=int, default=10, help="Maximum hits to return (default: 10)."
+    )
+    p_corpus.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_resolve = subparsers.add_parser(
+        "resolve",
+        help="Tiered live citation resolution (Semantic Scholar -> Crossref DOI "
+        "canonicalization -> OpenAlex fallback). READ-ONLY: prints the result and "
+        "writes NOTHING — citations enter the DB only through review flows "
+        "(verify.insert_citation).",
+        description="Resolve a query against the structured APIs: Semantic Scholar "
+        "first, Crossref canonicalization when a DOI is found, OpenAlex fallback on an "
+        "S2 miss (requires CITATION_NEEDED_OPENALEX_KEY). Shows a corpus-first FTS5 "
+        "preview when the DB exists. This verb NEVER writes the database — the "
+        "citations table is written only by review flows through the anti-fabrication "
+        "gate (verify.insert_citation).",
+    )
+    p_resolve.add_argument("query", help="Free-text bibliographic query.")
+    p_resolve.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
 
     return parser
 
@@ -192,6 +228,92 @@ def _cmd_scan(
     return 0
 
 
+def _cmd_corpus_search(db_path: Path, query: str, category: str | None, limit: int) -> int:
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    conn = db.connect(db_path)
+    try:
+        try:
+            hits = corpus.corpus_search(conn, query, category=category, limit=limit)
+        except (ValueError, sqlite3.Error) as exc:
+            # ValueError: bad limit; sqlite3.Error: missing/corrupt FTS index.
+            print(f"error: {exc}")
+            return 1
+    finally:
+        conn.close()
+    if not hits:
+        print("No corpus hits.")
+        return 0
+    print(f"{len(hits)} corpus hit(s) (bm25: lower = better):")
+    for hit in hits:
+        title = hit.title or "(untitled)"
+        print(f"  [{hit.citation_id}] bm25={hit.score:.3f}  {hit.natural_key}  {title}")
+    return 0
+
+
+def _print_resolution(result: resolve.ResolutionResult) -> None:
+    print(f"Tiers tried: {', '.join(result.tiers_tried)}")
+    if not result.resolved or result.hit is None:
+        print("No resolution found (a legitimate no-literature-found outcome).")
+        return
+    hit = result.hit
+    print(f"Tier: {result.tier}")
+    print(f"Title: {hit.title}")
+    if hit.year is not None:
+        print(f"Year: {hit.year}")
+    if hit.authors:
+        print(f"Authors: {'; '.join(hit.authors)}")
+    if hit.doi:
+        print(f"DOI: {hit.doi}")
+    if hit.arxiv_id:
+        print(f"ArXiv: {hit.arxiv_id}")
+    if hit.url:
+        print(f"URL: {hit.url}")
+    if hit.abstract_snippet:
+        print(f"Abstract: {hit.abstract_snippet}")
+    if result.crossref_echo is not None:
+        print("Crossref canonicalization: ok (JSON echo captured).")
+    for note in result.notes:
+        print(f"Note: {note}")
+
+
+def _cmd_resolve(db_path: Path, query: str) -> int:
+    print(f"Query: {query}")
+    if db_path.exists():
+        conn = db.connect(db_path)
+        try:
+            try:
+                corpus_hits = corpus.corpus_search(conn, query, limit=3)
+            except sqlite3.Error as exc:
+                corpus_hits = []
+                print(f"Corpus (FTS5): unavailable ({exc}); continuing to live resolution.")
+            else:
+                if corpus_hits:
+                    print(
+                        f"Corpus (FTS5): {len(corpus_hits)} existing hit(s) — "
+                        "see `cite corpus-search` before spending live calls."
+                    )
+                else:
+                    print("Corpus (FTS5): 0 hits.")
+        finally:
+            conn.close()
+    else:
+        print("Corpus (FTS5): database not found — skipping corpus-first preview.")
+    try:
+        result = resolve.resolve_citation(query)
+    except resolve.ResolutionError as exc:
+        # Includes OpenAlexKeyMissing — loud and actionable, never a silent skip.
+        print(f"error: {exc}")
+        return 1
+    _print_resolution(result)
+    print(
+        "Read-only: nothing was written. Citations enter the DB only through review "
+        "flows (the verify.insert_citation anti-fabrication gate)."
+    )
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Entry point for the ``cite`` console script. Returns a process exit code."""
     args = _build_parser().parse_args(argv)
@@ -203,6 +325,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_status(args.db)
     if args.command == "scan":
         return _cmd_scan(args.db, args.workspace_root, args.memory_root, args.project)
+    if args.command == "corpus-search":
+        return _cmd_corpus_search(args.db, args.query, args.category, args.limit)
+    if args.command == "resolve":
+        return _cmd_resolve(args.db, args.query)
     raise AssertionError(f"unreachable: unknown command {args.command!r}")
 
 

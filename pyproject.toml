@@ -43,4 +43,9 @@ plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+# `live` tests hit real external APIs and are excluded from the default run;
+# run them explicitly once via `uv run pytest -m live` (CLI -m overrides addopts).
+addopts = "-q -m 'not live'"
+markers = [
+    "live: hits real external APIs (S2/Crossref); excluded by default, run via -m live",
+]

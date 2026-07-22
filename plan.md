@@ -271,7 +271,8 @@ everywhere via the one `~/.claude/skills` junction), thin-wrapping
 All under `src/citation_needed/` unless noted.
 
 - **`cli.py`** — argparse entry `cite`; verbs: `init-db`, `migrate`, `status`, `scan`,
-  `corpus-search`, `review open|commit`, `report`, `calibrate check|open|commit`,
+  `corpus-search`, `resolve` (read-only tiered-resolution preview, never writes the DB — added
+  Step 3), `review open|commit`, `report`, `calibrate check|open|commit`,
   `distill propose`, `queue list|resolve`, `seed import`. Large JSON payloads pass via **stdin**,
   not argv (Windows 32K argv limit — `feedback_subprocess_large_arg_stdin_windows`).
 - **`db.py`** — connection, `init` (schema.sql, idempotent), `migrate` (PRAGMA user_version loop).
@@ -457,6 +458,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 - **Produces:** src/citation_needed/{resolve,verify,corpus}.py, corpus-search CLI verb, unit tests with injectable seam + one live smoke test against a real DOI
 - **Done when:** a fabricated citation (quote absent from fetched text) is structurally rejected with nothing inserted; a real citation (arXiv:2307.03172) round-trips insert→FTS5-hit; SSRF fixtures (loopback/private/redirect-hop) all refuse; live Crossref call throttles from response headers.
 - **Depends on:** 1
+- **Status:** DONE (2026-07-21)
 
 <!-- autofix-applied: 2026-07-21 -->
 ### Step 4: Review mechanics + breakdown renderer + interpretation guide
