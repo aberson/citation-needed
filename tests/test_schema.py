@@ -163,26 +163,40 @@ GOLDEN_DETAILS: dict[str, dict[str, object]] = {
         "origin_session_id": "740ce8b1-8ae8-41e5-a58b-7245a7601fee",
         "memory_scope": "global",
         "frontmatter_modified": "2026-07-21T00:00:00Z",
+        "frontmatter_error": None,
     },
     "skill": {
         "name": "session-wrap",
         "description": "The session-transition front door.",
         "user_invocable": True,
         "has_evals": True,
+        "command_style": "skill_dir",
         "is_pointer": True,
         "pointer_target": ".claude/skills/_shared/session-wrap-core.md",
+        "pointer_target_is_artifact": False,
+        "pointer_unresolved": False,
+        "resolution_base": ".claude/skills",
+        "frontmatter_error": None,
     },
     "rule": {
         "source_memory_paths": [
             "memory:c--Users-abero-dev/feedback_external_content_prompt_injection.md"
         ],
     },
-    "claude_md": {"scope": "project", "project_slug": "citation-needed"},
+    "claude_md": {
+        "scope": "project",
+        "project_slug": "citation-needed",
+        "artifact_imports": [".claude/rules/security.md"],
+        "inline_targets": ["docs/lessons-learned.md"],
+        "pointer_unresolved": None,
+    },
     "plan": {
         "plan_kind": "root",
         "is_pointer_only": False,
         "step_count": 12,
         "phase_count": 0,
+        "linked_targets": None,
+        "pointer_unresolved": None,
     },
 }
 

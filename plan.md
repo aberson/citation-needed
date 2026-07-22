@@ -446,6 +446,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 - **Produces:** src/citation_needed/discover.py, scan CLI verb, fixture tests for each artifact type + both pointer shapes
 - **Done when:** `cite scan --project coding-root` against the real workspace registers all 5 types with counts matching spot-check fixtures; a thin-wrapper SKILL.md fixture resolves to its pointed-to file (not zero choices); a CLAUDE.md fixture with an `@path` import inlines a non-artifact target AND records-but-skips a target that is itself a scanned artifact (no double-extraction); a `.claude/commands/*.md` fixture registers as `skill`; integration test invokes the production CLI entry, not internals.
 - **Depends on:** 1
+- **Status:** DONE (2026-07-21)
 
 <!-- autofix-applied: 2026-07-21 -->
 ### Step 3: Citation resolution + anti-fabrication verifier + FTS5 corpus
