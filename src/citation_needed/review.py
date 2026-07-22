@@ -378,11 +378,18 @@ class PriorChoice(_ContractBase):
 
 
 class OpenOutput(_ContractBase):
-    """The ``cite review open`` stdout JSON (review-open.schema.json)."""
+    """The ``cite review open`` stdout JSON (review-open.schema.json).
+
+    ``calibration_aged_accepted`` is True when this run was opened under the
+    ``--accept-aged`` override of an over-30-day calibration — surfaced here (and
+    stamped onto the fingerprint cache by ``calibrate.check_calibration``) so a
+    downstream audit can tell overridden runs from fresh-gate runs.
+    """
 
     run_id: int
     reviewer_model: str
     started_at: str
+    calibration_aged_accepted: bool = False
     artifact: OpenArtifact
     prior_choices: list[PriorChoice]
 
@@ -421,6 +428,8 @@ def open_review(
     *,
     reviewer_model: str,
     workspace_root: Path,
+    calibration_check: bool = True,
+    accept_aged: bool = False,
 ) -> OpenOutput:
     """Create a review_runs row with frozen provenance; return it JSON-ready.
 
@@ -429,6 +438,15 @@ def open_review(
     ``tool_schema_version`` from ``PRAGMA user_version``. Prior choice_key/summary
     pairs for the artifact ride along so the skill layer can instruct key REUSE.
     Transactions belong to the caller (``with conn:``); this function only executes.
+
+    CALIBRATION GATE (plan §4.5 / D7): after the target resolves but before any row
+    is created, the cached calibration fingerprint is checked against the current
+    prompt hash / model id / corpus / schema values — no valid calibration, no real
+    review. ``accept_aged`` overrides ONLY the 30-day advisory ceiling, never an A-D
+    mismatch. ``calibration_check=False`` is the escape hatch that exists SOLELY for
+    ``calibrate.py``'s own anchor runs on the throwaway DB: the gate cannot require
+    a passed calibration before any calibration has ever run. ``cite review open``
+    always passes the check enabled.
     """
     if not reviewer_model or not reviewer_model.strip():
         raise ReviewError("reviewer_model must be non-empty (frozen run provenance)")
@@ -442,6 +460,27 @@ def open_review(
         raise ReviewError(f"artifact not registered: {path} — run `cite scan` first")
     if row[4] is None:
         raise ReviewError(f"artifact has no stored content hash: {path} — re-run `cite scan`")
+    aged_accepted = False
+    if calibration_check:
+        # Late import: calibrate drives open/commit for its anchor runs, so a
+        # top-level import here would be circular.
+        from citation_needed import calibrate
+
+        check = calibrate.check_calibration(
+            conn, model_id=reviewer_model.strip(), accept_aged=accept_aged
+        )
+        if not check.valid:
+            reasons = "; ".join(check.reasons)
+            raise ReviewError(
+                "review open REFUSED — no valid calibration for this DB "
+                f"({reasons}). The anchor gate must pass before any real review "
+                "(measurement-validity: calibrate with anchors before comparing "
+                "candidates). Run the calibration flow (`cite calibrate commit`, "
+                "driven by /citation-review --calibrate), then re-open."
+            )
+        # valid AND aged is only reachable via accept_aged — the override did the
+        # work; check_calibration already stamped the durable cache-side record.
+        aged_accepted = check.aged
     artifact_id = int(row[0])
     tool_schema_version = int(conn.execute("PRAGMA user_version").fetchone()[0])
     git_sha = git_head_sha(workspace_root)
@@ -468,6 +507,7 @@ def open_review(
         run_id=int(cursor.lastrowid),
         reviewer_model=reviewer_model.strip(),
         started_at=started_at,
+        calibration_aged_accepted=aged_accepted,
         artifact=OpenArtifact(
             id=artifact_id,
             path=str(row[1]),

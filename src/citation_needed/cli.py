@@ -15,6 +15,13 @@ Purely mechanical verbs (the CLI never calls an LLM). v1 verbs:
   review-commit.schema.json), persist choices/scores/citations in one transaction,
   render the breakdown doc
 - ``cite report``        — locate the breakdown doc for a target path + terse summary
+- ``cite calibrate check``  — report fingerprint-cache validity + per-component diff
+  (exit 0 valid / 1 invalid)
+- ``cite calibrate open``   — print the calibration context JSON (anchor paths, a
+  throwaway DB with two open anchor runs, expected labels) for the skill layer
+- ``cite calibrate commit`` — read the two anchor payloads from STDIN, run the 4-assertion
+  gate on a throwaway DB, cache the fingerprint on PASS (exit 0 pass / 1 gate-fail /
+  2 parse-fail-abort; the real DB is read via an atomic backup snapshot, never written)
 """
 
 from __future__ import annotations
@@ -29,7 +36,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from citation_needed import breakdown, corpus, db, discover, resolve, review, verify
+from citation_needed import breakdown, calibrate, corpus, db, discover, resolve, review, verify
 from citation_needed.models import DETAILS_MODELS
 
 _DB_HELP = "Path to the SQLite database (default: data/citation.db under the project root)."
@@ -141,6 +148,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "(default: CITATION_NEEDED_WORKSPACE_ROOT env var, else the parent of the "
         "citation-needed project root).",
     )
+    p_open.add_argument(
+        "--accept-aged",
+        action="store_true",
+        help="Override ONLY the 30-day calibration advisory ceiling (an A-D "
+        "fingerprint mismatch still refuses; deliberate operator action).",
+    )
     p_open.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
 
     p_commit = review_sub.add_parser(
@@ -201,6 +214,109 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Where breakdown docs live (default: breakdowns/ under the project root).",
     )
     p_report.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_calibrate = subparsers.add_parser(
+        "calibrate",
+        help="Anchor calibration gate: check (cache validity) / open (context JSON) / "
+        "commit (run the gate on a throwaway DB; cache the fingerprint on PASS).",
+    )
+    calibrate_sub = p_calibrate.add_subparsers(dest="calibrate_command", required=True)
+
+    p_cal_check = calibrate_sub.add_parser(
+        "check",
+        help="Report fingerprint-cache validity + per-component diff; exit 0/1.",
+        description="Compares the cached calibration fingerprint (prompts hash, model "
+        "id, corpus row-count/max-id, schema user_version, frozen-anchor content "
+        "hash, 30-day advisory age) against current values. Exit 0 when valid, 1 "
+        "when invalid/missing.",
+    )
+    p_cal_check.add_argument(
+        "--model",
+        default=None,
+        help="Resolved model id to compare against fingerprint B (omitted: B is "
+        "reported but not compared — the CLI cannot resolve a model itself).",
+    )
+    p_cal_check.add_argument(
+        "--accept-aged",
+        action="store_true",
+        help="Treat an over-30-day (but otherwise matching) calibration as valid.",
+    )
+    p_cal_check.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_cal_open = calibrate_sub.add_parser(
+        "open",
+        help="Print the calibration context JSON (throwaway DB, anchor runs, "
+        "expected labels) for the skill layer's judging pass.",
+        description="Creates a throwaway snapshot of the DB (atomic sqlite3 backup; "
+        "the real DB is never written), registers both frozen anchors on it, opens "
+        "one review run per anchor, and prints the context JSON. Advisory for the "
+        "skill layer: `cite calibrate commit` is stateless and builds its own fresh "
+        "throwaway, so the default temp throwaway is removed when this command "
+        "finishes (throwaway_retained=false in the JSON).",
+    )
+    p_cal_open.add_argument(
+        "--reviewer-model",
+        default="unspecified",
+        help="Model identity frozen onto the anchor run rows (default: 'unspecified').",
+    )
+    p_cal_open.add_argument(
+        "--workspace-root",
+        type=Path,
+        default=None,
+        help="Workspace root for the best-effort `git rev-parse HEAD` on the anchor "
+        "runs (default: CITATION_NEEDED_WORKSPACE_ROOT env var, else the parent of "
+        "the citation-needed project root).",
+    )
+    p_cal_open.add_argument(
+        "--throwaway-dir",
+        type=Path,
+        default=None,
+        help="Directory for the throwaway DB snapshot (default: a fresh temp dir, "
+        "removed when the command finishes; pass a dir to keep it for inspection).",
+    )
+    p_cal_open.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_cal_commit = calibrate_sub.add_parser(
+        "commit",
+        help="Read the two anchor payloads from STDIN; run the 4-assertion gate; "
+        "cache the fingerprint on PASS. Exit 0 pass / 1 gate-fail / 2 parse-fail.",
+        description='STDIN JSON: {"good": <review-commit payload>, "garbage": '
+        "<review-commit payload>} (stdin, not argv — Windows 32K argv limit). Both "
+        "anchors run through the production scan+open+commit mechanics against a "
+        "throwaway snapshot of the DB (atomic sqlite3 backup; the real DB is never "
+        "written), so a calibration run can never poison the compounding corpus. "
+        "On any gate failure NOTHING is cached and every failed assertion is "
+        "reported.",
+    )
+    p_cal_commit.add_argument(
+        "--model",
+        default="unspecified",
+        help="Resolved model id the anchors were judged with — calibration "
+        "fingerprint B (default: 'unspecified').",
+    )
+    p_cal_commit.add_argument(
+        "--workspace-root",
+        type=Path,
+        default=None,
+        help="Workspace root internal-read citations in the payloads are verified "
+        "against (default: CITATION_NEEDED_WORKSPACE_ROOT env var, else the parent "
+        "of the citation-needed project root).",
+    )
+    p_cal_commit.add_argument(
+        "--memory-root",
+        type=Path,
+        default=None,
+        help="Root of the per-project memory dirs for memory:-scheme internal-read "
+        "citations (default: ~/.claude/projects). Mainly for hermetic tests.",
+    )
+    p_cal_commit.add_argument(
+        "--throwaway-dir",
+        type=Path,
+        default=None,
+        help="Directory for the throwaway DB snapshot (default: a fresh temp dir, "
+        "removed when the command finishes; pass a dir to keep it for inspection).",
+    )
+    p_cal_commit.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
 
     return parser
 
@@ -427,7 +543,11 @@ def _default_breakdowns_root(flag: Path | None) -> Path:
 
 
 def _cmd_review_open(
-    db_path: Path, path: str, reviewer_model: str, workspace_root: Path | None
+    db_path: Path,
+    path: str,
+    reviewer_model: str,
+    workspace_root: Path | None,
+    accept_aged: bool,
 ) -> int:
     if not db_path.exists():
         print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
@@ -436,13 +556,16 @@ def _cmd_review_open(
     try:
         try:
             with conn:  # one transaction for the run-row insert
+                # calibration_check is ALWAYS enabled here — the escape hatch exists
+                # only for calibrate.py's own anchor runs on the throwaway DB.
                 opened = review.open_review(
                     conn,
                     path,
                     reviewer_model=reviewer_model,
                     workspace_root=_default_workspace_root(workspace_root),
+                    accept_aged=accept_aged,
                 )
-        except (review.ReviewError, sqlite3.Error) as exc:
+        except (review.ReviewError, calibrate.CalibrationError, sqlite3.Error) as exc:
             print(f"error: {exc}")
             return 1
     finally:
@@ -450,6 +573,33 @@ def _cmd_review_open(
     # Stdout is the machine contract (review-open.schema.json) — nothing else prints.
     print(json.dumps(opened.model_dump(), indent=2))
     return 0
+
+
+def _read_stdin_json(verb: str) -> tuple[object, str | None]:
+    """Read one JSON document from STDIN — the shared payload seam.
+
+    Reads BYTES and decodes UTF-8 explicitly (RFC 8259: JSON is UTF-8). A bare
+    ``sys.stdin.read()`` inherits the console codepage on Windows (cp1252/437 on this
+    workspace's out-of-the-box default), silently mojibaking non-ASCII payload text
+    into the DB. utf-8-sig additionally tolerates + strips a BOM (PowerShell '>' /
+    Out-File can prepend one). A non-UTF-8 payload errors loudly, never corrupts.
+    Returns ``(data, None)`` or ``(None, error_message)``.
+    """
+    raw_bytes = sys.stdin.buffer.read()
+    try:
+        raw = raw_bytes.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        return None, f"error: stdin must be UTF-8 — the payload could not be decoded ({exc})"
+    if not raw.strip():
+        return None, f"error: empty stdin — `{verb}` reads the payload JSON from STDIN"
+    try:
+        return json.loads(raw), None
+    except json.JSONDecodeError as exc:
+        return None, f"error: stdin is not valid JSON: {exc}"
+    except RecursionError:
+        # json.loads recurses per nesting level; a hostile/garbled deeply-nested payload
+        # must exit through the clean error contract, never a raw traceback.
+        return None, "error: stdin is not valid JSON: nesting too deep to parse"
 
 
 def _cmd_review_commit(
@@ -462,29 +612,9 @@ def _cmd_review_commit(
     if not db_path.exists():
         print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
         return 1
-    # Read BYTES and decode UTF-8 explicitly (RFC 8259: JSON is UTF-8). A bare
-    # sys.stdin.read() inherits the console codepage on Windows (cp1252/437 on this
-    # workspace's out-of-the-box default), silently mojibaking non-ASCII payload text
-    # into the DB. utf-8-sig additionally tolerates + strips a BOM (PowerShell '>' /
-    # Out-File can prepend one). A non-UTF-8 payload errors loudly, never corrupts.
-    raw_bytes = sys.stdin.buffer.read()
-    try:
-        raw = raw_bytes.decode("utf-8-sig")
-    except UnicodeDecodeError as exc:
-        print(f"error: stdin must be UTF-8 — the payload could not be decoded ({exc})")
-        return 1
-    if not raw.strip():
-        print("error: empty stdin — `cite review commit` reads the payload JSON from STDIN")
-        return 1
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        print(f"error: stdin is not valid JSON: {exc}")
-        return 1
-    except RecursionError:
-        # json.loads recurses per nesting level; a hostile/garbled deeply-nested payload
-        # must exit through the clean error contract, never a raw traceback.
-        print("error: stdin is not valid JSON: nesting too deep to parse")
+    data, stdin_error = _read_stdin_json("cite review commit")
+    if stdin_error is not None:
+        print(stdin_error)
         return 1
     try:
         payload = review.CommitPayload.model_validate(data)
@@ -605,6 +735,140 @@ def _cmd_report(db_path: Path, target_path: str, breakdowns_root: Path | None) -
     return 0
 
 
+def _cmd_calibrate_check(db_path: Path, model: str | None, accept_aged: bool) -> int:
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    conn = db.connect(db_path)
+    try:
+        try:
+            check = calibrate.check_calibration(conn, model_id=model, accept_aged=accept_aged)
+        except calibrate.CalibrationError as exc:
+            print(f"error: {exc}")
+            return 1
+    finally:
+        conn.close()
+    cache_file = check.fingerprint_file
+    print(f"Fingerprint cache: {cache_file.as_posix() if cache_file else '(none)'}")
+    if check.fingerprint is not None:
+        fp = check.fingerprint
+        print(f"  A prompts_sha256:     {fp.prompts_sha256}")
+        compared = "" if model is not None else "  (not compared — pass --model to compare)"
+        print(f"  B model_id:           {fp.model_id}{compared}")
+        print(f"  C corpus_fingerprint: {fp.corpus_fingerprint}")
+        print(f"  D schema_user_version: {fp.schema_user_version}")
+        print(f"  E anchors_sha256:     {fp.anchors_sha256}")
+        age = f"{check.age_days:.1f} days old" if check.age_days is not None else "age unknown"
+        print(f"  computed_at:          {fp.computed_at} ({age})")
+        if fp.accepted_aged_at is not None:
+            print(
+                f"  accepted-aged:        last overridden {fp.accepted_aged_at} "
+                f"(cache was {fp.accepted_aged_age_days} days old)"
+            )
+        print(f"  gate: composite(good) {fp.gate.composite_good:.1f}, ")
+        print(
+            f"        composite(garbage) {fp.gate.composite_garbage:.1f}, "
+            f"margin {fp.gate.margin:.1f}, parse-fail {fp.gate.parse_fail_rate:.1%}"
+        )
+    if check.valid:
+        suffix = " (aged — accepted via --accept-aged)" if check.aged else ""
+        print(f"Calibration: VALID{suffix}")
+        return 0
+    print("Calibration: INVALID")
+    for reason in check.reasons:
+        print(f"  - {reason}")
+    print("Re-run the gate: `cite calibrate commit` (driven by /citation-review --calibrate).")
+    return 1
+
+
+def _cmd_calibrate_open(
+    db_path: Path,
+    reviewer_model: str,
+    workspace_root: Path | None,
+    throwaway_dir: Path | None,
+) -> int:
+    try:
+        context = calibrate.open_calibration(
+            db_path,
+            reviewer_model=reviewer_model,
+            throwaway_dir=throwaway_dir,
+            workspace_root=workspace_root,
+        )
+    except (calibrate.CalibrationError, review.ReviewError, sqlite3.Error, OSError) as exc:
+        print(f"error: {exc}")
+        return 1
+    # Stdout is the machine contract — nothing else prints.
+    print(json.dumps(context, indent=2))
+    return 0
+
+
+def _cmd_calibrate_commit(
+    db_path: Path,
+    model: str,
+    workspace_root: Path | None,
+    memory_root: Path | None,
+    throwaway_dir: Path | None,
+) -> int:
+    data, stdin_error = _read_stdin_json("cite calibrate commit")
+    if stdin_error is not None:
+        print(stdin_error)
+        return 1
+    if not isinstance(data, dict) or "good" not in data or "garbage" not in data:
+        print(
+            'error: calibrate commit stdin must be {"good": <review-commit payload>, '
+            '"garbage": <review-commit payload>}'
+        )
+        return 1
+    try:
+        good_payload = review.CommitPayload.model_validate(data["good"])
+        garbage_payload = review.CommitPayload.model_validate(data["garbage"])
+    except ValidationError as exc:
+        print(f"error: anchor payload does not match review-commit.schema.json: {exc}")
+        return 1
+    try:
+        result = calibrate.run_calibration(
+            db_path,
+            good_payload,
+            garbage_payload,
+            model_id=model,
+            throwaway_dir=throwaway_dir,
+            workspace_root=workspace_root,
+            memory_root=memory_root,
+        )
+    except calibrate.CalibrationParseFailure as exc:
+        # Distinct ABORT class: the parser is broken independent of what it scores.
+        print(f"error: {exc}")
+        return 2
+    except (
+        calibrate.CalibrationError,
+        review.ReviewError,
+        verify.VerificationFailed,
+        sqlite3.Error,
+        OSError,
+    ) as exc:
+        print(f"error: {exc}")
+        return 1
+    retained = result.throwaway_db.is_file()
+    suffix = "kept (--throwaway-dir)" if retained else "temp copy, removed after the run"
+    print(f"Throwaway DB: {result.throwaway_db.as_posix()} ({suffix}; real DB never written)")
+    print(
+        f"Anchor runs: good #{result.good_run_id} composite {result.composite_good:.1f}, "
+        f"garbage #{result.garbage_run_id} composite {result.composite_garbage:.1f}, "
+        f"margin {result.margin:.1f}, parse-fail rate {result.parse_fail_rate:.1%}"
+    )
+    for assertion in result.assertions:
+        marker = "PASS" if assertion.passed else "FAIL"
+        print(f"  [{marker}] {assertion.name}: {assertion.detail}")
+    if result.passed:
+        print(f"Calibration PASSED — fingerprint cached at {result.fingerprint_file.as_posix()}")
+        return 0
+    print(
+        "Calibration ABORT — gate failed; nothing was cached, no real review may run. "
+        "Thresholds are never loosened to make a run pass (plan D7)."
+    )
+    return 1
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Entry point for the ``cite`` console script. Returns a process exit code."""
     args = _build_parser().parse_args(argv)
@@ -622,7 +886,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_resolve(args.db, args.query)
     if args.command == "review":
         if args.review_command == "open":
-            return _cmd_review_open(args.db, args.path, args.reviewer_model, args.workspace_root)
+            return _cmd_review_open(
+                args.db, args.path, args.reviewer_model, args.workspace_root, args.accept_aged
+            )
         if args.review_command == "commit":
             return _cmd_review_commit(
                 args.db, args.run, args.workspace_root, args.memory_root, args.breakdowns_root
@@ -630,6 +896,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise AssertionError(f"unreachable: unknown review command {args.review_command!r}")
     if args.command == "report":
         return _cmd_report(args.db, args.path, args.breakdowns_root)
+    if args.command == "calibrate":
+        if args.calibrate_command == "check":
+            return _cmd_calibrate_check(args.db, args.model, args.accept_aged)
+        if args.calibrate_command == "open":
+            return _cmd_calibrate_open(
+                args.db, args.reviewer_model, args.workspace_root, args.throwaway_dir
+            )
+        if args.calibrate_command == "commit":
+            return _cmd_calibrate_commit(
+                args.db, args.model, args.workspace_root, args.memory_root, args.throwaway_dir
+            )
+        raise AssertionError(f"unreachable: unknown calibrate command {args.calibrate_command!r}")
     raise AssertionError(f"unreachable: unknown command {args.command!r}")
 
 

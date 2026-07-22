@@ -22,6 +22,11 @@
           "type": "string",
           "description": "ISO 8601 UTC, from the pipeline clock."
         },
+        "calibration_aged_accepted": {
+          "type": "boolean",
+          "default": false,
+          "description": "True when this run was opened under the --accept-aged override of an over-30-day calibration (the override is also durably stamped onto the fingerprint cache as accepted_aged_at / accepted_aged_age_days). Downstream audit uses this to tell overridden runs from fresh-gate runs."
+        },
         "artifact": { "$ref": "#/$defs/OpenArtifact" },
         "prior_choices": {
           "type": "array",

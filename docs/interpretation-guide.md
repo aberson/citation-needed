@@ -85,6 +85,27 @@ Anchoring (plan §4.5): no composite is trustworthy until the calibration gate h
 `composite(good anchor) ≥ 65`, `composite(garbage anchor) ≤ 35`, margin ≥ 40, plus the
 per-dimension shape assertions — through the production path on a throwaway DB.
 
+**Shape-assertion semantics (a deliberate D-decision).** The gate's
+`evidence_backed_fraction(good)` / `unsupported+contradicted fraction(garbage)` are the
+**mean per-choice vote share**, not the fraction of choices whose majority
+classification lands on that side:
+
+```
+good_evidence_share    = mean over good's choices of  count(evidence-backed votes) / k
+garbage_negative_share = mean over garbage's choices of
+                         (count(unsupported) + count(contradicted)) / k
+```
+
+Both must be ≥ 0.6. The rejected alternative reading — "fraction of choices
+majority-classified evidence-backed" — is equally consistent with the plan's wording but
+discards judge-agreement information and is strictly easier to game: a run where every
+good choice scrapes a 3-of-7 evidence-backed plurality would score a perfect 1.0 under
+the majority-fraction reading while the mean vote share is only ≈ 0.43 — weak agreement
+the gate is designed to refuse. Mean vote share is continuous (every vote moves it) and
+consistent with the vote-share columns above being the audit trail. A regression test
+pins the divergence case (5/5 majority-evidence-backed, mean share 3/7 → FAIL) as
+intended behavior.
+
 ## "No literature found" is a result
 
 `scores.literature_searched` / `literature_found` / `search_queries` distinguish three

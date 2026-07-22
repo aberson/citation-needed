@@ -25,12 +25,13 @@ import io
 import json
 import sqlite3
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-from citation_needed import db, resolve
+from citation_needed import calibrate, db, resolve
 from citation_needed.cli import main
 
 RULE_PATH = ".claude/rules/subagent-economy.md"
@@ -141,6 +142,48 @@ def worked_payload() -> dict[str, Any]:
     return {"choices": [worked_choice()]}
 
 
+def write_valid_calibration_fingerprint(
+    db_path: Path,
+    model_id: str = "claude-sonnet-5",
+    computed_at: datetime | None = None,
+) -> Path:
+    """Seed a CURRENTLY-valid calibration fingerprint cache next to ``db_path``.
+
+    Step 5 made ``cite review open`` hard-refuse without a valid cached calibration.
+    This helper mirrors the state a just-passed ``cite calibrate commit`` leaves
+    behind (fingerprints A-D computed from the REAL current values), so review tests
+    exercise the production check and still open — the check itself is never
+    weakened or bypassed. Pass ``computed_at`` to write an aged cache.
+    """
+    conn = db.connect(db_path)
+    try:
+        corpus_fp = calibrate.corpus_fingerprint(conn)
+        schema_ver = calibrate.schema_version(conn)
+    finally:
+        conn.close()
+    moment = computed_at if computed_at is not None else datetime.now(UTC)
+    fingerprint = calibrate.CalibrationFingerprint(
+        prompts_sha256=calibrate.prompts_fingerprint(),
+        model_id=model_id,
+        corpus_fingerprint=corpus_fp,
+        schema_user_version=schema_ver,
+        anchors_sha256=calibrate.anchors_fingerprint(),
+        computed_at=moment.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        gate=calibrate.GateResults(
+            composite_good=95.0,
+            composite_garbage=0.0,
+            margin=95.0,
+            good_evidence_share=0.8,
+            garbage_negative_share=1.0,
+            parse_fail_rate=0.0,
+            passed=True,
+        ),
+    )
+    path = calibrate.fingerprint_path(db_path)
+    calibrate.write_fingerprint(path, fingerprint)  # the production atomic writer
+    return path
+
+
 @pytest.fixture()
 def mock_api_lookups(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[str]]:
     """Offline stand-in for the SERVER-SIDE structured-API seam; records lookups.
@@ -195,6 +238,9 @@ def ws(
         )
         == 0
     )
+    # Seed a valid calibration so `review open`'s hard gate passes for the fixture
+    # workspace (mirrors a passed `cite calibrate commit`; the check still runs).
+    write_valid_calibration_fingerprint(db_path)
     capsys.readouterr()  # drop setup output; tests read their own verb's output
     return {
         "root": root,
@@ -210,6 +256,10 @@ def _open(
     path: str = RULE_PATH,
     reviewer_model: str = "claude-sonnet-5",
 ) -> dict[str, Any]:
+    # Re-seed a currently-valid fingerprint: corpus fingerprint C changes as tests
+    # commit citations, and by design corpus growth invalidates calibration — a
+    # re-open mid-test mirrors the real flow's recalibrate-then-open.
+    write_valid_calibration_fingerprint(ws["db"], model_id=reviewer_model)
     capsys.readouterr()  # drop any buffered output — stdout must parse as pure JSON
     assert (
         main(

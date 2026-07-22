@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "frozen_at": "2026-07-21",
+  "good_anchor": {
+    "file": "good-anchor.code-quality.frozen.md",
+    "sha256": "8732235c8e188db540e39e518f4d9158e700f44696cc4a9b80a2888c44361155",
+    "choices": [
+      {
+        "choice_key": "grep-downstream-consumers-on-key-shape-change",
+        "section": "Grep all downstream consumers when changing a key/id shape",
+        "expected_label": "evidence-backed",
+        "alternates": [],
+        "verification": {
+          "kind": "external",
+          "url": "https://en.wikipedia.org/wiki/Change_impact_analysis",
+          "title": "Change impact analysis",
+          "finding": "Impact analysis (Bohner & Arnold 1996) is the named practice of identifying the potential consequences of a change by tracing dependencies before altering shared code — grep-all-consumers is dependency impact analysis practiced manually.",
+          "verified": "Phase 0, 2026-07-21 session (score-validity.md section 2a row 1; URL opened and content confirmed)"
+        }
+      },
+      {
+        "choice_key": "one-source-of-truth-shape-constants",
+        "section": "One source of truth for data-shape constants",
+        "expected_label": "evidence-backed",
+        "alternates": [],
+        "verification": {
+          "kind": "external",
+          "url": "https://en.wikipedia.org/wiki/Don%27t_repeat_yourself",
+          "title": "Don't repeat yourself",
+          "finding": "Hunt & Thomas (The Pragmatic Programmer): every piece of knowledge must have a single, unambiguous, authoritative representation within a system — the direct statement of the one-source-of-truth constant rule.",
+          "verified": "Phase 0, 2026-07-21 session (score-validity.md section 2a row 2; URL opened and content confirmed)"
+        }
+      },
+      {
+        "choice_key": "audit-wire-shape-on-storage-change",
+        "section": "Audit wire shape when storage representation changes",
+        "expected_label": "evidence-backed",
+        "alternates": [],
+        "verification": {
+          "kind": "external",
+          "url": "https://arxiv.org/abs/2604.01518",
+          "title": "Are Benchmark Tests Strong Enough? (STING)",
+          "finding": "77% of SWE-bench-Verified instances have surviving variant patches that pass existing tests despite being semantically wrong; adjusting failing tests to match new behavior codifies regressions only a real client catches — the same failure shape as the rule's Toybox G2 incident.",
+          "verified": "Phase 0, 2026-07-21 session (score-validity.md section 2a row 3; arXiv page opened and content confirmed)"
+        }
+      },
+      {
+        "choice_key": "integration-test-through-production-caller",
+        "section": "New components require an integration test through the production caller",
+        "expected_label": "evidence-backed",
+        "alternates": [],
+        "verification": {
+          "kind": "external",
+          "url": "https://martinfowler.com/bliki/TestPyramid.html",
+          "title": "TestPyramid",
+          "finding": "Higher-level/integration tests are needed as a second line of test defense precisely because unit tests alone do not exercise cross-module wiring — unit-tested-but-never-invoked is the wiring gap the pyramid's upper layers exist to catch.",
+          "verified": "Phase 0, 2026-07-21 session (score-validity.md section 2a row 4; URL opened and content confirmed)"
+        }
+      },
+      {
+        "choice_key": "build-phase-halt-contract",
+        "section": "Build-phase halt contract",
+        "expected_label": "interesting-novel",
+        "alternates": ["unsupported"],
+        "verification": {
+          "kind": "absence",
+          "queries": [
+            "agent orchestration halt conditions allowlist software pipeline",
+            "build pipeline legitimate halt contract autonomous agent mid-run confirmation prompts",
+            "orchestrator halt allowlist quality gate wait step worktree merge conflict"
+          ],
+          "note": "No external literature found — this is a workspace-specific orchestration contract for the /build-phase skill, not a general software-engineering principle. A correct reviewer records internal-provenance-only rather than forcing a citation; landing as interesting-novel (or unsupported) is the anchor's deliberate hard-but-fair item, not a defect (score-validity.md section 2a row 5).",
+          "verified": "Phase 0, 2026-07-21 session (score-validity.md section 2a row 5: no-literature-found recorded as a legitimate finding)"
+        }
+      }
+    ]
+  },
+  "garbage_anchor": {
+    "file": "garbage-anchor.SYNTHETIC.md",
+    "sha256": "384f7d767932f6a383a2cd71c07763e6d76fa7bf7a61720aaff2b4e1b6b84c0e",
+    "choices": [
+      {
+        "choice_key": "auto-retry-failing-tests-to-green",
+        "section": "Auto-retry every failing test up to 3 times, treat any pass as fully green",
+        "expected_label": "contradicted",
+        "alternates": [],
+        "verification": {
+          "kind": "external",
+          "url": "https://www.qawolf.com/blog/what-your-system-should-do-with-a-flaky-test",
+          "title": "What your system should do with a flaky test",
+          "finding": "Even a retry-favorable source requires retries to be capped and investigated to avoid masking real instability; the documented consensus is that retry-until-green without root-causing masks real, intermittent bugs and creates a false sense of reliability. The fixture's no-logging/no-investigation form is the unqualified anti-pattern.",
+          "verified": "Phase 0, 2026-07-21 session (score-validity.md section 2b row 1; URL opened and content confirmed)"
+        }
+      },
+      {
+        "choice_key": "flat-24h-ttl-all-caches",
+        "section": "Cache every read-through query with a flat 24-hour TTL, no exceptions",
+        "expected_label": "contradicted",
+        "alternates": [],
+        "verification": {
+          "kind": "external",
+          "doi": "10.1109/12.675713",
+          "title": "Maintaining Strong Cache Consistency in the World Wide Web",
+          "finding": "Cao & Liu (IEEE Transactions on Computers 47(4), 1998): weak-consistency fixed-TTL caching saves bandwidth mostly at the expense of returning stale documents to users; the weak-consistency baseline the literature compares against is ADAPTIVE per-object TTL, and invalidation-based strong consistency costs about the same. A flat 24h TTL regardless of data change rate is the configuration this literature argues against.",
+          "verified": "2026-07-21 this build step: live Crossref bibliographic query + DOI round-trip through resolve.lookup_crossref_doi (title match confirmed); finding cross-checked via web search"
+        }
+      },
+      {
+        "choice_key": "skip-review-under-20-lines",
+        "section": "Skip code review on any diff under 20 lines",
+        "expected_label": "contradicted",
+        "alternates": [],
+        "verification": {
+          "kind": "external",
+          "doi": "10.1109/TSE.2005.74",
+          "title": "Toward understanding the rhetoric of small source code changes",
+          "finding": "Purushothaman & Perry (IEEE TSE 31(6), 2005), measured on Bell Labs 5ESS change history: even one-line changes introduce a fault with a measurable (~4%) probability, and fault-introduction probability rises with change size — 'small diffs are obviously safe' is empirically false, so auto-merging them unreviewed ships a material defect rate.",
+          "verified": "2026-07-21 this build step: live Crossref DOI round-trip through resolve.lookup_crossref_doi + Semantic Scholar lookup-by-DOI through resolve.lookup_semantic_scholar_id (title match confirmed both); finding cross-checked via web search"
+        }
+      },
+      {
+        "choice_key": "log-full-bodies-info-production",
+        "section": "Log full request/response bodies at INFO level in production for debuggability",
+        "expected_label": "contradicted",
+        "alternates": [],
+        "verification": {
+          "kind": "external",
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html",
+          "title": "OWASP Logging Cheat Sheet",
+          "finding": "Lists HTTP request/response bodies among data to exclude from general logs, and PII/tokens/secrets as data that must be removed, masked, sanitized, hashed, or encrypted — never logged wholesale at a routine level.",
+          "verified": "Phase 0, 2026-07-21 session (score-validity.md section 2b row 4; URL opened and content confirmed)"
+        }
+      },
+      {
+        "choice_key": "god-object-config-class",
+        "section": "Prefer a single god-object config class over per-module config",
+        "expected_label": "contradicted",
+        "alternates": ["unsupported"],
+        "verification": {
+          "kind": "external",
+          "doi": "10.1007/s10664-011-9171-y",
+          "title": "An exploratory study of the impact of antipatterns on class change- and fault-proneness",
+          "finding": "Khomh, Di Penta, Guéhéneuc & Antoniol (Empirical Software Engineering 17(3), 2012): across almost all studied releases of four systems, classes participating in antipatterns — the Blob / God Class among them — are significantly more change- and fault-prone than other classes, and size alone does not explain the higher odds of fault-fixing changes.",
+          "verified": "2026-07-21 this build step: live Crossref DOI round-trip through resolve.lookup_crossref_doi + Semantic Scholar lookup-by-DOI through resolve.lookup_semantic_scholar_id (title match confirmed both); finding cross-checked via web search"
+        }
+      }
+    ]
+  }
+}

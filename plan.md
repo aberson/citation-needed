@@ -480,6 +480,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 - **Produces:** fixtures/calibration/*.md, src/citation_needed/calibrate.py, calibrate CLI verbs, tests incl. a red-on-garbage self-test (a deliberately broken scorer must fail the gate)
 - **Done when:** gate goes red when fed inverted anchor labels (self-test); `cite review open` refuses with a loud message when no valid calibration is cached or any fingerprint is stale; a calibration run leaves the real DB byte-identical (poisoning test); all 5 garbage-anchor choices carry a verified citation or documented search.
 - **Depends on:** 4
+- **Status:** DONE (2026-07-21)
 
 ### Step 6: Distill engine + queue triage verbs
 - **Problem:** `distill.py`: generate trim/rewrite proposals where every proposal carries citation ids or a documented absence (`literature_searched=1, literature_found=0`), rank via `(1−composite/100) × load_weight`, plus `cite queue list` and `cite queue resolve <id> --keep|--cut|--rewrite` recording operator + timestamp.
