@@ -16,8 +16,11 @@ here (plan.md §3.1; docs/research/schema-draft.md §6).
   filename order. Each migration runs in its own transaction; on success `user_version` is set to
   that migration's `N` (inside the same transaction, so a failed migration rolls back both the DDL
   and the version bump).
-- `schema.sql` sets `PRAGMA user_version = 1`, so the first migration is `0002_*.sql`.
 - Never renumber or edit an already-shipped migration — append a new one. When a migration lands,
   also update `schema.sql` so a brand-new DB and a migrated DB converge on the same schema.
 
-No migrations exist yet (schema v1 is the `schema.sql` baseline).
+## Shipped migrations
+
+| N | File | What it does |
+|---|---|---|
+| 2 | `0002_review-run-composite.sql` | Adds `composite` / `composite_band` / `interpretation_guide_version` to `review_runs` (the artifact-level composite lives on the committed run; plan.md §4.4). `schema.sql` now sets `PRAGMA user_version = 2` so brand-new DBs converge. |

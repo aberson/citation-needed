@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review-commit.schema.json",
+  "title": "cite review commit — stdin payload contract",
+  "description": "The JSON payload `cite review commit` reads from STDIN (stdin, never argv — Windows 32K argv limit; the bytes MUST be UTF-8, optionally BOM-prefixed). SINGLE SOURCE the Step-8 skills validate against. Sync-by-construction (no jsonschema dependency): src/citation_needed/review.py defines pydantic mirrors (CommitPayload / ChoiceEntry / CitationEntry) with extra='forbid'; every payload is validated through them before any write, and tests/test_review.py asserts each $defs entry's properties + required lists (and the enum value sets) match the models exactly, so this file and the code cannot drift. Anti-fabrication: there is deliberately NO field for fetched page text AND NO field for an API echo — a web_fetch_verified entry is re-fetched and quote-re-verified server-side by the CLI through verify.fetch_url, and an api_structured entry's echo is captured server-side by the CLI's OWN structured-API lookup (DOI via Crossref; arXiv/S2 paper URL via Semantic Scholar), with the payload's claimed title required to match the retrieved title; a payload carrying fetched_text or api_echo is rejected outright.",
+  "$ref": "#/$defs/CommitPayload",
+  "$defs": {
+    "CommitPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["choices"],
+      "properties": {
+        "choices": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/ChoiceEntry" },
+          "description": "Every choice observed THIS review. choice_keys present in the DB but absent here are marked status='removed' (never deleted — their citations remain corpus assets). Duplicate keys are rejected."
+        },
+        "run_id": {
+          "type": ["integer", "null"],
+          "description": "Optional when --run is passed on the command line; when both are present they must agree."
+        }
+      }
+    },
+    "ChoiceEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "choice_key",
+        "summary",
+        "quote",
+        "span_start_line",
+        "span_end_line",
+        "category",
+        "votes",
+        "literature_searched",
+        "literature_found"
+      ],
+      "properties": {
+        "choice_key": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "description": "Kebab slug; the durable identity. REUSE the prior run's key for the same underlying decision even if reworded (the open output supplies the prior pairs); mint a new key only for a genuinely new choice."
+        },
+        "summary": { "type": "string" },
+        "quote": {
+          "type": "string",
+          "description": "The literal extracted span text (stored as choices.quote_or_span; its sha256 is the byte-identical reuse fast path)."
+        },
+        "span_start_line": { "type": "integer", "minimum": 1 },
+        "span_end_line": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Locator only, never identity — must be >= span_start_line."
+        },
+        "category": {
+          "type": "string",
+          "description": "One of the 11 taxonomy categories (prompts/classification.v1.md). Also seeds the citation keywords for FTS5 corpus-first search."
+        },
+        "votes": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "enum": [
+              "evidence-backed",
+              "interesting-novel",
+              "unsupported",
+              "contradicted",
+              "parse-failed"
+            ]
+          },
+          "description": "One dimension label per judge call, k>=3. A judge call whose output could not be parsed arrives as the literal 'parse-failed' and is force-scored contradicted, counted in the denominator. A majority tie MUST be escalated (k=5, then 7) before commit — a tie reaching commit rejects the whole payload."
+        },
+        "source_path": {
+          "type": ["string", "null"],
+          "description": "File the span was actually extracted from when it differs from the artifact's own file (pointer-resolved skills/plans, CLAUDE.md @-imports, evals/ sidecars). Null/omitted means the artifact's own file."
+        },
+        "citations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CitationEntry" }
+        },
+        "literature_searched": {
+          "type": "boolean",
+          "description": "Was an external search actually attempted for this choice."
+        },
+        "literature_found": {
+          "type": "boolean",
+          "description": "Did the search return anything usable. searched=true + found=false is the first-class no-literature-found result."
+        },
+        "search_queries": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The actual query strings tried — REQUIRED non-empty whenever literature_searched is true, so a null result is auditable, never a black box."
+        },
+        "rationale": { "type": ["string", "null"] },
+        "suggestions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Actionable suggestions; expected for every needs-improvement choice (rendered in the breakdown)."
+        }
+      }
+    },
+    "CitationEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relevance_note", "support_direction"],
+      "description": "Exactly one of three shapes: (1) EXISTING LINK — citation_id, or kind + natural_key (identity is UNIQUE(kind, natural_key)); (2) NEW EXTERNAL — resolution_method 'api_structured' with a locator (doi, or an arxiv.org/semanticscholar.org paper url) + the claimed title (the CLI performs the structured-API lookup ITSELF, captures the API's own JSON response as the stored echo, and rejects the whole payload on a title mismatch — a caller-supplied api_echo is never accepted), or 'web_fetch_verified' with url + quote (the CLI re-fetches the url itself via the SSRF-guarded seam and re-verifies the quote — caller-supplied page text is never accepted); (3) NEW INTERNAL — resolution_method 'internal-read' with workspace_path + quote, read-verified against the actual file (the path is confined to the workspace root, or to the memory root for memory:-scheme locators — escapes reject the payload). All inserts go through verify.insert_citation, the sole writer.",
+      "properties": {
+        "relevance_note": {
+          "type": "string",
+          "description": "Per-link relevance, required — never a bare join."
+        },
+        "support_direction": {
+          "enum": ["supports", "contradicts", "tangential"]
+        },
+        "citation_id": {
+          "type": ["integer", "null"],
+          "description": "Existing-link form 1: a citations.id (e.g. from corpus-search)."
+        },
+        "natural_key": {
+          "type": ["string", "null"],
+          "description": "Existing-link form 2: the normalized DOI / normalized URL / workspace path; requires kind."
+        },
+        "kind": {
+          "enum": ["external", "internal", null]
+        },
+        "resolution_method": {
+          "enum": ["api_structured", "web_fetch_verified", "internal-read", null]
+        },
+        "title": {
+          "type": ["string", "null"],
+          "description": "Retrieved title — required for every new record."
+        },
+        "authors": { "type": ["string", "null"] },
+        "year": { "type": ["integer", "null"] },
+        "venue": { "type": ["string", "null"] },
+        "doi": { "type": ["string", "null"] },
+        "url": { "type": ["string", "null"] },
+        "workspace_path": {
+          "type": ["string", "null"],
+          "description": "Internal only: workspace-relative forward-slash path."
+        },
+        "quote": {
+          "type": ["string", "null"],
+          "description": "Supporting quote for web_fetch_verified (matched against the server-side re-fetch) and internal-read (matched against the actual file)."
+        },
+        "source_line_ref": {
+          "type": ["string", "null"],
+          "description": "Internal only: 'path:line' locator at verification time (drifts)."
+        },
+        "keywords": {
+          "type": ["string", "null"],
+          "description": "FTS5 corpus terms; defaults to the choice's category."
+        },
+        "notes": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

@@ -469,6 +469,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 - **Produces:** src/citation_needed/{review,breakdown}.py, review/report CLI verbs, docs/contracts/review-open.schema.json, docs/contracts/review-commit.schema.json, docs/interpretation-guide.md, prompts/ v1 templates (extraction, classification)
 - **Done when:** committing the worked-example JSON for `.claude/rules/subagent-economy.md` reproduces the appendix row-set exactly; a second commit with the same choice reworded reuses the choice_key (zero duplicates — the D4 acceptance test); breakdown doc renders with both citation classes labeled; `cite report` surfaces it.
 - **Depends on:** 2, 3
+- **Status:** DONE (2026-07-21)
 
 <!-- autofix-applied: 2026-07-21 -->
 ### Step 5: Calibration fixtures + gate

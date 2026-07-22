@@ -67,7 +67,17 @@ CREATE TABLE IF NOT EXISTS review_runs (
     tool_schema_version             INTEGER NOT NULL,   -- PRAGMA user_version this run ran under
     status                          TEXT NOT NULL DEFAULT 'completed'
                                         CHECK (status IN ('completed', 'aborted')),
-    notes                           TEXT
+    notes                           TEXT,
+    -- Artifact-level composite for the committed run (plan.md §4.4; migration 0002 —
+    -- appended after notes to match ALTER TABLE's append position so migrated and
+    -- fresh DBs converge). NULL until `cite review commit`; the ONE implementation
+    -- of the math lives in review.py.
+    composite                       REAL CHECK (composite IS NULL OR
+                                        composite BETWEEN 0 AND 100),
+    composite_band                  TEXT CHECK (composite_band IS NULL OR
+                                        composite_band IN
+                                        ('strong', 'adequate', 'weak', 'unsupported')),
+    interpretation_guide_version    TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_review_runs_artifact ON review_runs (artifact_id, started_at);
 
@@ -240,4 +250,4 @@ CREATE TABLE IF NOT EXISTS distill_queue (
 );
 CREATE INDEX IF NOT EXISTS idx_distill_queue_status_rank ON distill_queue (status, rank DESC);
 
-PRAGMA user_version = 1;
+PRAGMA user_version = 2;

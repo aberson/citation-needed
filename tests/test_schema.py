@@ -49,7 +49,8 @@ def test_init_db_creates_all_tables(db_path: Path) -> None:
         for table in db.CANONICAL_TABLES:
             assert table in names, f"missing canonical table: {table}"
         assert db.FTS_TABLE in names, "missing FTS5 external-content table"
-        assert int(conn.execute("PRAGMA user_version").fetchone()[0]) == 1
+        # schema.sql lands new DBs on v2 directly (migration 0002 folded in).
+        assert int(conn.execute("PRAGMA user_version").fetchone()[0]) == 2
         assert conn.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
         # Load-bearing for concurrent sweep fan-out (plan.md §3.1) — assert, don't assume.
         assert int(conn.execute("PRAGMA busy_timeout").fetchone()[0]) == 5000
@@ -278,7 +279,7 @@ def test_cli_init_db_and_status_end_to_end(
 
     assert main(["status", "--db", str(cli_db)]) == 0
     out = capsys.readouterr().out
-    assert "Schema version (PRAGMA user_version): 1" in out
+    assert "Schema version (PRAGMA user_version): 2" in out
     for table in db.CANONICAL_TABLES:
         assert table in out
     assert "0 row(s)" in out
@@ -306,7 +307,7 @@ def test_cli_migrate_broken_migration_prints_error(
     """A broken migration exits 1 with a clean `error:` line — never a raw traceback."""
     migrations = tmp_path / "migrations"
     migrations.mkdir()
-    (migrations / "0002_broken.sql").write_text(
+    (migrations / "0003_broken.sql").write_text(
         "CREATE TABLE syntax error here;\n", encoding="utf-8"
     )
     real_migrate = db.migrate
@@ -325,19 +326,20 @@ def test_cli_migrate_broken_migration_prints_error(
 
 
 def test_migrate_applies_pending_in_order_and_bumps_version(db_path: Path, tmp_path: Path) -> None:
+    # Fresh DBs are at user_version 2 (schema.sql), so pending test migrations start at 3.
     migrations = tmp_path / "migrations"
     migrations.mkdir()
-    (migrations / "0002_add-widget.sql").write_text(
+    (migrations / "0003_add-widget.sql").write_text(
         "CREATE TABLE widget (id INTEGER PRIMARY KEY);\n", encoding="utf-8"
     )
-    (migrations / "0003_add-gadget.sql").write_text(
+    (migrations / "0004_add-gadget.sql").write_text(
         "CREATE TABLE gadget (id INTEGER PRIMARY KEY);\n", encoding="utf-8"
     )
 
-    assert db.migrate(db_path, migrations_dir=migrations) == [2, 3]
+    assert db.migrate(db_path, migrations_dir=migrations) == [3, 4]
     conn = db.connect(db_path)
     try:
-        assert int(conn.execute("PRAGMA user_version").fetchone()[0]) == 3
+        assert int(conn.execute("PRAGMA user_version").fetchone()[0]) == 4
         assert {"widget", "gadget"} <= _table_names(conn)
     finally:
         conn.close()
@@ -351,15 +353,15 @@ def test_migrate_two_statements_on_one_line_applies(db_path: Path, tmp_path: Pat
     semicolon boundaries within a physical line, not reject the valid migration."""
     migrations = tmp_path / "migrations"
     migrations.mkdir()
-    (migrations / "0002_two-on-one-line.sql").write_text(
+    (migrations / "0003_two-on-one-line.sql").write_text(
         "CREATE TABLE a (id INTEGER); CREATE TABLE b (id INTEGER);\n", encoding="utf-8"
     )
 
-    assert db.migrate(db_path, migrations_dir=migrations) == [2]
+    assert db.migrate(db_path, migrations_dir=migrations) == [3]
     conn = db.connect(db_path)
     try:
         assert {"a", "b"} <= _table_names(conn)
-        assert int(conn.execute("PRAGMA user_version").fetchone()[0]) == 2
+        assert int(conn.execute("PRAGMA user_version").fetchone()[0]) == 3
     finally:
         conn.close()
 
@@ -367,7 +369,7 @@ def test_migrate_two_statements_on_one_line_applies(db_path: Path, tmp_path: Pat
 def test_migrate_failed_migration_rolls_back(db_path: Path, tmp_path: Path) -> None:
     migrations = tmp_path / "migrations"
     migrations.mkdir()
-    (migrations / "0002_broken.sql").write_text(
+    (migrations / "0003_broken.sql").write_text(
         "CREATE TABLE will_roll_back (id INTEGER PRIMARY KEY);\nCREATE TABLE syntax error here;\n",
         encoding="utf-8",
     )
@@ -378,7 +380,7 @@ def test_migrate_failed_migration_rolls_back(db_path: Path, tmp_path: Path) -> N
     conn = db.connect(db_path)
     try:
         # Both the DDL and the version bump rolled back together.
-        assert int(conn.execute("PRAGMA user_version").fetchone()[0]) == 1
+        assert int(conn.execute("PRAGMA user_version").fetchone()[0]) == 2
         assert "will_roll_back" not in _table_names(conn)
     finally:
         conn.close()

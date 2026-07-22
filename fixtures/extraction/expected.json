@@ -1,0 +1,14 @@
+{
+  "description": "Expected extraction choice COUNTS for the plan §4.1 memory-splitting acceptance fixtures. Extraction is LLM-side (Step 8), so the mechanical Step 4 tests (tests/test_extraction_fixtures.py) pin the prompt's splitting-rule text and these fixtures' parseability; the LIVE count check — running extraction over each fixture and comparing the produced choice count against this file — is consumed by plan Step 9's end-to-end smoke.",
+  "consumer": "plan.md Step 9 (end-to-end smoke — calibrate, then one real review)",
+  "fixtures": {
+    "multi-decision-memory.md": {
+      "expected_choice_count": 3,
+      "contract": "> 1 (one choice per independently-falsifiable decision)"
+    },
+    "single-decision-memory.md": {
+      "expected_choice_count": 1,
+      "contract": "== 1 (single-decision memories never over-split)"
+    }
+  }
+}

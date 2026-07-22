@@ -47,6 +47,7 @@ from urllib.parse import urlsplit, urlunsplit
 import httpx
 
 from citation_needed._http import DEFAULT_TIMEOUT
+from citation_needed.discover import default_memory_root
 from citation_needed.resolve import normalize_doi
 
 USER_AGENT = "citation-needed/0.1 (anti-fabrication citation verifier)"
@@ -384,6 +385,60 @@ def _natural_key(kind: CitationKind, doi: str | None, url: str | None, path: str
     raise VerificationFailed(f"no locator to derive a natural key for kind={kind!r}")
 
 
+MEMORY_PATH_SCHEME = "memory:"
+
+
+def _confined_internal_path(
+    normalized_path: str, workspace_root: Path, memory_root: Path | None
+) -> Path:
+    """Resolve an internal-read locator to a file CONFINED to its root — or refuse.
+
+    ``workspace_path`` comes from the untrusted commit payload, so the join is a
+    traversal sink: ``../`` climbs out of the root and an absolute path RESETS a
+    ``pathlib`` join entirely (``Path(root) / 'C:/x'`` discards ``root``). Every
+    candidate is therefore ``resolve()``d and REQUIRED to be ``is_relative_to`` its
+    root; any escape raises :class:`VerificationFailed` (whole-payload reject —
+    commit's one transaction writes nothing).
+
+    Two locator families:
+
+    - workspace-relative (``docs/x.md``) — confined to ``workspace_root``;
+    - ``memory:<project-dir-slug>/<file>.md`` (discover.py's scheme for memory
+      artifacts, which live OUTSIDE the workspace under
+      ``<memory_root>/<slug>/memory/``) — confined to ``memory_root``
+      (:func:`citation_needed.discover.default_memory_root` when not supplied).
+    """
+    if normalized_path.startswith(MEMORY_PATH_SCHEME):
+        root = Path(memory_root) if memory_root is not None else default_memory_root()
+        remainder = normalized_path[len(MEMORY_PATH_SCHEME) :]
+        dir_slug, sep, rel_file = remainder.partition("/")
+        if not dir_slug or not sep or not rel_file:
+            raise VerificationFailed(
+                f"internal-read refuses {normalized_path!r}: a memory locator must be "
+                "memory:<project-dir-slug>/<file>.md"
+            )
+        candidate = root / dir_slug / "memory" / rel_file
+        label = "memory root"
+    else:
+        root = Path(workspace_root)
+        candidate = root / normalized_path
+        label = "workspace root"
+    try:
+        resolved = candidate.resolve()
+        resolved_root = root.resolve()
+    except OSError as exc:  # e.g. an un-resolvable path on this OS
+        raise VerificationFailed(
+            f"internal-read refuses {normalized_path!r}: cannot resolve ({exc})"
+        ) from exc
+    if not resolved.is_relative_to(resolved_root):
+        raise VerificationFailed(
+            f"internal-read refuses {normalized_path!r}: the path escapes the "
+            f"{label} {resolved_root.as_posix()} — internal citations are workspace/"
+            "memory provenance only, never arbitrary machine paths"
+        )
+    return resolved
+
+
 def insert_citation(
     conn: sqlite3.Connection,
     *,
@@ -394,6 +449,7 @@ def insert_citation(
     url: str | None = None,
     workspace_path: str | None = None,
     workspace_root: Path | None = None,
+    memory_root: Path | None = None,
     supporting_quote: str | None = None,
     fetch_result: FetchResult | None = None,
     api_echo: dict[str, Any] | None = None,
@@ -423,6 +479,9 @@ def insert_citation(
     - ``internal-read`` (internal): requires ``workspace_path`` + ``workspace_root`` +
       ``supporting_quote``; this function READS the actual file and the quoted span
       must appear in it — a workspace claim is verified against the file, not trusted.
+      The path is CONFINED (:func:`_confined_internal_path`): resolved and required to
+      stay inside ``workspace_root`` (or, for ``memory:``-scheme locators, inside
+      ``memory_root``); a ``../`` or absolute-path escape refuses, nothing inserted.
 
     ``verified_at`` is stamped from the pipeline clock (:func:`_pipeline_now`) at
     insert time — it is deliberately NOT a parameter.
@@ -492,7 +551,7 @@ def insert_citation(
                 "internal-read requires workspace_root so the span can be read from the actual file"
             )
         assert normalized_path is not None  # guaranteed by the kind='internal' branch
-        file_path = Path(workspace_root) / normalized_path
+        file_path = _confined_internal_path(normalized_path, workspace_root, memory_root)
         try:
             file_text = file_path.read_text(encoding="utf-8-sig", errors="replace")
         except OSError as exc:
@@ -558,6 +617,7 @@ def insert_citation(
 __all__ = [
     "MAX_REDIRECT_HOPS",
     "MAX_RESPONSE_BYTES",
+    "MEMORY_PATH_SCHEME",
     "FetchFailed",
     "FetchResult",
     "QuoteMismatch",

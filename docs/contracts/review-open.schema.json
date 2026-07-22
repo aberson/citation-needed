@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review-open.schema.json",
+  "title": "cite review open — stdout contract",
+  "description": "The JSON `cite review open <path>` prints to stdout: the new review run id, the artifact's frozen provenance (stored content hash, best-effort git HEAD sha which is null when the workspace is not a git repo, tool schema version = PRAGMA user_version), and the prior (choice_key, summary) pairs the skill layer MUST feed back into extraction for key REUSE. SINGLE SOURCE the Step-8 skills validate against. Sync-by-construction (no jsonschema dependency): src/citation_needed/review.py defines pydantic mirrors (OpenOutput / OpenArtifact / PriorChoice) with extra='forbid'; the CLI builds its output through them, and tests/test_review.py asserts each $defs entry's properties + required lists match the model's fields exactly, so this file and the code cannot drift.",
+  "$ref": "#/$defs/OpenOutput",
+  "$defs": {
+    "OpenOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "reviewer_model", "started_at", "artifact", "prior_choices"],
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "The review_runs row id — pass it to `cite review commit --run <id>` (or as the payload's run_id)."
+        },
+        "reviewer_model": {
+          "type": "string",
+          "description": "Frozen onto the run row (from --reviewer-model)."
+        },
+        "started_at": {
+          "type": "string",
+          "description": "ISO 8601 UTC, from the pipeline clock."
+        },
+        "artifact": { "$ref": "#/$defs/OpenArtifact" },
+        "prior_choices": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PriorChoice" },
+          "description": "Every prior choice for this artifact (including status='removed' ones — reusing a removed key revives the same durable row), ordered by choice_key. Empty on a first review."
+        }
+      }
+    },
+    "OpenArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "path",
+        "artifact_type",
+        "project",
+        "content_hash",
+        "git_sha",
+        "tool_schema_version"
+      ],
+      "properties": {
+        "id": { "type": "integer" },
+        "path": {
+          "type": "string",
+          "description": "Two-scheme form: workspace-relative forward-slash, or memory:<project-dir-slug>/<file>.md."
+        },
+        "artifact_type": {
+          "enum": ["memory", "skill", "rule", "claude_md", "plan"]
+        },
+        "project": { "type": "string" },
+        "content_hash": {
+          "type": "string",
+          "description": "The artifact's stored current_content_hash, frozen onto the run as artifact_content_hash_at_review."
+        },
+        "git_sha": {
+          "type": ["string", "null"],
+          "description": "Best-effort `git -C <workspace> rev-parse HEAD`; null when the workspace is not a git repo."
+        },
+        "tool_schema_version": {
+          "type": "integer",
+          "description": "PRAGMA user_version the run was opened under."
+        }
+      }
+    },
+    "PriorChoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["choice_key", "summary", "status"],
+      "properties": {
+        "choice_key": { "type": "string" },
+        "summary": { "type": "string" },
+        "status": {
+          "enum": ["active", "superseded", "removed"],
+          "description": "Reuse the key for the same underlying decision even if reworded — including a removed key when the decision reappears."
+        }
+      }
+    }
+  }
+}

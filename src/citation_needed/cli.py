@@ -9,19 +9,27 @@ Purely mechanical verbs (the CLI never calls an LLM). v1 verbs:
 - ``cite corpus-search`` — FTS5 BM25 lookup over the verified citations corpus (read-only)
 - ``cite resolve``       — tiered live resolution (S2 -> Crossref -> OpenAlex); READ-ONLY,
   writes nothing — citations are inserted only through review flows
+- ``cite review open``   — create a review_runs row with frozen provenance; print the
+  run id + prior choice_key/summary pairs as JSON (review-open.schema.json)
+- ``cite review commit`` — read the payload JSON from STDIN (Windows 32K argv limit —
+  review-commit.schema.json), persist choices/scores/citations in one transaction,
+  render the breakdown doc
+- ``cite report``        — locate the breakdown doc for a target path + terse summary
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sqlite3
+import sys
 from collections import Counter
 from collections.abc import Sequence
 from pathlib import Path
 
 from pydantic import ValidationError
 
-from citation_needed import corpus, db, discover, resolve
+from citation_needed import breakdown, corpus, db, discover, resolve, review, verify
 from citation_needed.models import DETAILS_MODELS
 
 _DB_HELP = "Path to the SQLite database (default: data/citation.db under the project root)."
@@ -103,13 +111,109 @@ def _build_parser() -> argparse.ArgumentParser:
     p_resolve.add_argument("query", help="Free-text bibliographic query.")
     p_resolve.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
 
+    p_review = subparsers.add_parser(
+        "review", help="Review-run lifecycle: open (frozen provenance) / commit (stdin JSON)."
+    )
+    review_sub = p_review.add_subparsers(dest="review_command", required=True)
+
+    p_open = review_sub.add_parser(
+        "open",
+        help="Create a review_runs row with frozen provenance; print JSON to stdout.",
+        description="Creates a review run for an already-scanned artifact and prints "
+        "the review-open.schema.json JSON: run_id, artifact info (stored content hash, "
+        "best-effort git HEAD sha, tool schema version), and the prior "
+        "choice_key/summary pairs the skill layer feeds back for key REUSE.",
+    )
+    p_open.add_argument(
+        "path",
+        help="Artifact path as stored (workspace-relative forward-slash, or memory:<slug>/...).",
+    )
+    p_open.add_argument(
+        "--reviewer-model",
+        default="unspecified",
+        help="Model identity frozen onto the run row (default: 'unspecified').",
+    )
+    p_open.add_argument(
+        "--workspace-root",
+        type=Path,
+        default=None,
+        help="Workspace root for the best-effort `git rev-parse HEAD` "
+        "(default: CITATION_NEEDED_WORKSPACE_ROOT env var, else the parent of the "
+        "citation-needed project root).",
+    )
+    p_open.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_commit = review_sub.add_parser(
+        "commit",
+        help="Read the commit payload JSON from STDIN; persist rows + render the breakdown.",
+        description="Reads the review-commit.schema.json payload from STDIN (stdin, not "
+        "argv — Windows 32K argv limit), upserts choices by (artifact_id, choice_key), "
+        "writes vote-share scores, links/inserts citations through the anti-fabrication "
+        "gate (web_fetch_verified entries are re-fetched and re-verified server-side), "
+        "stamps the composite on the run, and renders the breakdown doc. All DB writes "
+        "happen in ONE transaction.",
+    )
+    p_commit.add_argument(
+        "--run",
+        type=int,
+        default=None,
+        help="Review run id from `cite review open` (or supply run_id in the payload).",
+    )
+    p_commit.add_argument(
+        "--workspace-root",
+        type=Path,
+        default=None,
+        help="Workspace root internal-read citations are verified against "
+        "(default: CITATION_NEEDED_WORKSPACE_ROOT env var, else the parent of the "
+        "citation-needed project root).",
+    )
+    p_commit.add_argument(
+        "--memory-root",
+        type=Path,
+        default=None,
+        help="Root of the per-project memory dirs that memory:-scheme internal-read "
+        "citations are confined to (default: ~/.claude/projects). Mainly for hermetic "
+        "tests.",
+    )
+    p_commit.add_argument(
+        "--breakdowns-root",
+        type=Path,
+        default=None,
+        help="Where breakdown docs render (default: breakdowns/ under the project root).",
+    )
+    p_commit.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_report = subparsers.add_parser(
+        "report",
+        help="Locate the breakdown doc for a target path + print a terse summary.",
+        description="Resolves the breakdown path via the plan §3.2 slug convention and "
+        "prints composite, band, choice count, and per-classification counts from the "
+        "latest committed review run. Errors cleanly when no review exists.",
+    )
+    p_report.add_argument(
+        "path",
+        help="Target artifact path as stored (workspace-relative, or memory:<slug>/...).",
+    )
+    p_report.add_argument(
+        "--breakdowns-root",
+        type=Path,
+        default=None,
+        help="Where breakdown docs live (default: breakdowns/ under the project root).",
+    )
+    p_report.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
     return parser
 
 
 def _cmd_init_db(db_path: Path) -> int:
     created = db.init_db(db_path)
     if created:
-        print(f"Initialized new database at {db_path.as_posix()} (schema v1).")
+        conn = db.connect(db_path)
+        try:
+            version = int(conn.execute("PRAGMA user_version").fetchone()[0])
+        finally:
+            conn.close()
+        print(f"Initialized new database at {db_path.as_posix()} (schema v{version}).")
     else:
         print(f"Database at {db_path.as_posix()} already has tables — init-db is a no-op.")
         print("Schema changes to an existing DB ship as migrations (see migrations/README.md).")
@@ -314,6 +418,193 @@ def _cmd_resolve(db_path: Path, query: str) -> int:
     return 0
 
 
+def _default_workspace_root(flag: Path | None) -> Path:
+    return flag if flag is not None else discover.default_workspace_root()
+
+
+def _default_breakdowns_root(flag: Path | None) -> Path:
+    return flag if flag is not None else db.PROJECT_ROOT / "breakdowns"
+
+
+def _cmd_review_open(
+    db_path: Path, path: str, reviewer_model: str, workspace_root: Path | None
+) -> int:
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    conn = db.connect(db_path)
+    try:
+        try:
+            with conn:  # one transaction for the run-row insert
+                opened = review.open_review(
+                    conn,
+                    path,
+                    reviewer_model=reviewer_model,
+                    workspace_root=_default_workspace_root(workspace_root),
+                )
+        except (review.ReviewError, sqlite3.Error) as exc:
+            print(f"error: {exc}")
+            return 1
+    finally:
+        conn.close()
+    # Stdout is the machine contract (review-open.schema.json) — nothing else prints.
+    print(json.dumps(opened.model_dump(), indent=2))
+    return 0
+
+
+def _cmd_review_commit(
+    db_path: Path,
+    run_flag: int | None,
+    workspace_root: Path | None,
+    memory_root: Path | None,
+    breakdowns_root: Path | None,
+) -> int:
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    # Read BYTES and decode UTF-8 explicitly (RFC 8259: JSON is UTF-8). A bare
+    # sys.stdin.read() inherits the console codepage on Windows (cp1252/437 on this
+    # workspace's out-of-the-box default), silently mojibaking non-ASCII payload text
+    # into the DB. utf-8-sig additionally tolerates + strips a BOM (PowerShell '>' /
+    # Out-File can prepend one). A non-UTF-8 payload errors loudly, never corrupts.
+    raw_bytes = sys.stdin.buffer.read()
+    try:
+        raw = raw_bytes.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        print(f"error: stdin must be UTF-8 — the payload could not be decoded ({exc})")
+        return 1
+    if not raw.strip():
+        print("error: empty stdin — `cite review commit` reads the payload JSON from STDIN")
+        return 1
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        print(f"error: stdin is not valid JSON: {exc}")
+        return 1
+    except RecursionError:
+        # json.loads recurses per nesting level; a hostile/garbled deeply-nested payload
+        # must exit through the clean error contract, never a raw traceback.
+        print("error: stdin is not valid JSON: nesting too deep to parse")
+        return 1
+    try:
+        payload = review.CommitPayload.model_validate(data)
+    except ValidationError as exc:
+        print(f"error: payload does not match docs/contracts/review-commit.schema.json: {exc}")
+        return 1
+    if run_flag is not None and payload.run_id is not None and run_flag != payload.run_id:
+        print(f"error: --run {run_flag} conflicts with payload run_id {payload.run_id}")
+        return 1
+    run_id = run_flag if run_flag is not None else payload.run_id
+    if run_id is None:
+        print("error: no run id — pass --run <id> or include run_id in the payload")
+        return 1
+
+    conn = db.connect(db_path)
+    try:
+        try:
+            result = review.commit_review(
+                conn,
+                run_id,
+                payload,
+                workspace_root=_default_workspace_root(workspace_root),
+                memory_root=memory_root,
+            )
+        except (review.ReviewError, verify.VerificationFailed, sqlite3.Error) as exc:
+            # ReviewError: lifecycle/tie/link violations; VerificationFailed: the
+            # anti-fabrication gate refused a citation; sqlite3.Error: constraint/IO.
+            # The ONE transaction rolled back — nothing was written.
+            print(f"error: {exc}")
+            return 1
+    finally:
+        conn.close()
+
+    try:
+        written = breakdown.write_breakdown(result, _default_breakdowns_root(breakdowns_root))
+    except OSError as exc:
+        print(
+            f"error: DB rows for run {result.run_id} are committed, but the breakdown "
+            f"doc could not be written: {exc}"
+        )
+        return 1
+    doc_path = written.path
+    counts = result.classification_counts()
+    if written.collision_note is not None:
+        print(written.collision_note)
+    print(f"Committed review run #{result.run_id} for {result.artifact_path}")
+    print(
+        f"Composite: {result.composite:.1f} / 100 — {result.composite_band} "
+        f"(interpretation guide {result.interpretation_guide_version})"
+    )
+    print(
+        f"Choices: {len(result.choices)} scored (well-supported {counts['well-supported']}, "
+        f"needs-improvement {counts['needs-improvement']}, "
+        f"interesting {counts['interesting']}); {len(result.removed_keys)} removed"
+    )
+    print(f"Breakdown: {doc_path.as_posix()}")
+    return 0
+
+
+def _cmd_report(db_path: Path, target_path: str, breakdowns_root: Path | None) -> int:
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    path = target_path.replace("\\", "/").strip()
+    conn = db.connect(db_path)
+    try:
+        artifact = conn.execute(
+            "SELECT id, artifact_type, project FROM artifacts WHERE path = ?", (path,)
+        ).fetchone()
+        if artifact is None:
+            print(
+                f"error: no review exists for {path} — the artifact is not registered "
+                "(run `cite scan`, then `cite review open` + `cite review commit`)"
+            )
+            return 1
+        run = conn.execute(
+            "SELECT id, finished_at, composite, composite_band, interpretation_guide_version "
+            "FROM review_runs WHERE artifact_id = ? AND composite IS NOT NULL "
+            "ORDER BY id DESC LIMIT 1",
+            (int(artifact[0]),),
+        ).fetchone()
+        if run is None:
+            print(
+                f"error: no review exists for {path} — no committed review run "
+                "(run `cite review open`, then `cite review commit`)"
+            )
+            return 1
+        counts = Counter(
+            {
+                str(row[0]): int(row[1])
+                for row in conn.execute(
+                    "SELECT classification, COUNT(*) FROM scores WHERE review_run_id = ? "
+                    "GROUP BY classification",
+                    (int(run[0]),),
+                )
+            }
+        )
+    finally:
+        conn.close()
+    # locate_breakdown checks BOTH candidates — the canonical §3.2 slug path and the
+    # hash-discriminated sibling a slug collision diverts to (see breakdown.py).
+    doc = breakdown.locate_breakdown(
+        _default_breakdowns_root(breakdowns_root), str(artifact[2]), path
+    )
+    suffix = (
+        "" if doc.is_file() else "  (file missing — gitignored output; re-review to regenerate)"
+    )
+    total = sum(counts.values())
+    print(f"Breakdown: {doc.as_posix()}{suffix}")
+    print(f"Artifact: {path} ({artifact[1]}, project {artifact[2]})")
+    print(f"Latest review: run #{run[0]}, committed {run[1]}")
+    print(f"Composite: {float(run[2]):.1f} / 100 — {run[3]} (interpretation guide {run[4]})")
+    print(
+        f"Choices scored: {total} (well-supported {counts['well-supported']}, "
+        f"needs-improvement {counts['needs-improvement']}, "
+        f"interesting {counts['interesting']})"
+    )
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Entry point for the ``cite`` console script. Returns a process exit code."""
     args = _build_parser().parse_args(argv)
@@ -329,6 +620,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_corpus_search(args.db, args.query, args.category, args.limit)
     if args.command == "resolve":
         return _cmd_resolve(args.db, args.query)
+    if args.command == "review":
+        if args.review_command == "open":
+            return _cmd_review_open(args.db, args.path, args.reviewer_model, args.workspace_root)
+        if args.review_command == "commit":
+            return _cmd_review_commit(
+                args.db, args.run, args.workspace_root, args.memory_root, args.breakdowns_root
+            )
+        raise AssertionError(f"unreachable: unknown review command {args.review_command!r}")
+    if args.command == "report":
+        return _cmd_report(args.db, args.path, args.breakdowns_root)
     raise AssertionError(f"unreachable: unknown command {args.command!r}")
 
 

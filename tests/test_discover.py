@@ -831,6 +831,23 @@ def test_scan_registry_unreadable_degrades_loudly(
     assert any(a.path == "notowned/CLAUDE.md" for a in report.artifacts)
 
 
+def test_scan_registry_non_utf8_degrades_loudly(
+    mini_workspace: dict[str, Path | str],
+) -> None:
+    """A registry.toml whose bytes are not UTF-8 (interrupted write, cp1252 re-save)
+    is a PARSE failure, not a crash: same loud-note degrade as malformed TOML — never
+    an uncaught UnicodeDecodeError (the bug-shape sibling of breakdown.py's
+    unreadable-header guard)."""
+    fx = mini_workspace
+    registry = Path(str(fx["ws"])) / ".claude" / "observatory" / "registry.toml"
+    registry.write_bytes(b'[[project]]\nslug = "proj\xff\xfeA"\npath = "projA"\n')
+    report = discover.scan_workspace(Path(str(fx["ws"])), memory_root=Path(str(fx["mem"])))
+    assert any("registry parse error" in note for note in report.notes)
+    # Degraded exactly like malformed TOML: no owned=false exclusions survive, so the
+    # notowned tree ingests as coding-root.
+    assert any(a.path == "notowned/CLAUDE.md" for a in report.artifacts)
+
+
 # ---------------------------------------------------------------------------
 # Iteration 3 (review-driven): the enumeration-seam invariant (fault injection at the
 # os.scandir layer — the layer BENEATH the guarded seam, so ANY regression back to

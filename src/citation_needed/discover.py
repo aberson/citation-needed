@@ -207,9 +207,10 @@ def workspace_memory_slug(workspace_root: Path) -> str:
 def load_registry(workspace_root: Path, registry_path: Path | None = None) -> list[RegistryEntry]:
     """Parse the observatory registry; a missing file returns an empty list (degradable).
 
-    Raises ``tomllib.TOMLDecodeError`` on malformed TOML and ``OSError`` when the file
+    Raises ``tomllib.TOMLDecodeError`` on malformed TOML, ``UnicodeDecodeError`` on a
+    non-UTF-8 file (interrupted write, cp1252 re-save), and ``OSError`` when the file
     vanishes/locks between the existence check and the read (TOCTOU) — the caller
-    (:func:`scan_workspace`) catches both and degrades with a loud note.
+    (:func:`scan_workspace`) catches all three and degrades with a loud note.
     """
     path = registry_path or (workspace_root / ".claude" / "observatory" / "registry.toml")
     if not path.is_file():
@@ -1051,7 +1052,9 @@ def scan_workspace(
     registry_file = registry_path or workspace_root / ".claude" / "observatory" / "registry.toml"
     try:
         registry = load_registry(workspace_root, registry_path)
-    except tomllib.TOMLDecodeError as exc:
+    except (tomllib.TOMLDecodeError, UnicodeDecodeError) as exc:
+        # UnicodeDecodeError is a parse failure too (non-UTF-8 registry bytes) — same
+        # degrade path as malformed TOML, never an uncaught traceback.
         registry = []
         report.notes.append(
             f"registry parse error: {exc} — every in-workspace artifact resolves to coding-root"

@@ -49,6 +49,7 @@ from citation_needed._http import DEFAULT_TIMEOUT
 _LOGGER = logging.getLogger(__name__)
 
 S2_SEARCH_URL = "https://api.semanticscholar.org/graph/v1/paper/search"
+S2_PAPER_URL = "https://api.semanticscholar.org/graph/v1/paper"
 S2_KEY_ENV = "CITATION_NEEDED_S2_KEY"
 S2_FIELDS = "title,year,authors,externalIds,url,abstract"
 
@@ -396,6 +397,77 @@ def search_semantic_scholar(
             active.close()
 
 
+def lookup_semantic_scholar_id(
+    paper_id: str,
+    *,
+    client: httpx.Client | None = None,
+    sleep: Callable[[float], None] = time.sleep,
+) -> dict[str, Any]:
+    """Fetch ONE paper by id via ``/graph/v1/paper/{id}`` — the narrow lookup-by-id seam.
+
+    ``paper_id`` is any id form the S2 Graph API accepts: an S2 paperId (40-hex),
+    ``ARXIV:2307.03172``, ``DOI:...``, ``CorpusId:...``. Returns the API's OWN JSON
+    object for the paper — the ``api_structured`` resolution record
+    ``review.commit_review`` captures SERVER-SIDE at commit time (the payload never
+    supplies the echo; plan §4.2 "captured at insert time from the actual fetch/API
+    response"). 429s get the same bounded, ``Retry-After``-honoring backoff as
+    :func:`search_semantic_scholar`; any other failure raises
+    :class:`ResolutionError` — loud, never a silent fallthrough.
+    """
+    cleaned = paper_id.strip()
+    if not cleaned:
+        raise ResolutionError("cannot look up an empty Semantic Scholar paper id")
+    owns_client = client is None
+    active = client if client is not None else _build_client()
+    headers = {"User-Agent": USER_AGENT}
+    api_key = os.environ.get(S2_KEY_ENV)
+    if api_key:
+        headers["x-api-key"] = api_key
+    try:
+        for attempt in range(S2_MAX_ATTEMPTS):
+            try:
+                response = active.get(
+                    f"{S2_PAPER_URL}/{cleaned}", params={"fields": S2_FIELDS}, headers=headers
+                )
+            except httpx.HTTPError as exc:
+                raise ResolutionError(f"Semantic Scholar request failed: {exc}") from exc
+            if response.status_code == 429:
+                if attempt == S2_MAX_ATTEMPTS - 1:
+                    raise ResolutionError(
+                        f"Semantic Scholar still rate-limiting after {S2_MAX_ATTEMPTS} attempts"
+                    )
+                delay = _parse_retry_after(
+                    response.headers.get("Retry-After"), fallback=float(2**attempt)
+                )
+                _LOGGER.warning(
+                    "Semantic Scholar 429 on paper lookup (attempt %d/%d); retrying in %.0f s",
+                    attempt + 1,
+                    S2_MAX_ATTEMPTS,
+                    delay,
+                )
+                sleep(delay)
+                continue
+            if response.status_code == 404:
+                raise ResolutionError(f"Semantic Scholar has no paper with id {cleaned!r}")
+            if response.status_code != 200:
+                raise ResolutionError(
+                    f"Semantic Scholar paper lookup returned HTTP {response.status_code}"
+                )
+            try:
+                payload = response.json()
+            except ValueError as exc:
+                raise ResolutionError("Semantic Scholar returned non-JSON body") from exc
+            if not isinstance(payload, dict):
+                raise ResolutionError(
+                    "Semantic Scholar paper response shape unexpected: not a JSON object"
+                )
+            return payload
+        raise AssertionError("unreachable: S2 retry loop always returns or raises")
+    finally:
+        if owns_client:
+            active.close()
+
+
 # ---------------------------------------------------------------------------
 # Crossref
 # ---------------------------------------------------------------------------
@@ -711,6 +783,7 @@ __all__ = [
     "ResolutionError",
     "ResolutionResult",
     "lookup_crossref_doi",
+    "lookup_semantic_scholar_id",
     "normalize_doi",
     "resolve_citation",
     "search_crossref",
