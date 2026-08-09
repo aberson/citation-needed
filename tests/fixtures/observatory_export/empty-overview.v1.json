@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-08-09T00:00:00Z",
+  "recent": [],
+  "schema": "observatory.v1",
+  "stats": {
+    "active_artifacts": 0,
+    "active_choices": 0,
+    "artifacts": 0,
+    "choices": 0,
+    "citations": 0,
+    "completed_reviews": 0,
+    "database_schema_version": 2,
+    "justifications_exported": 0,
+    "open_distill_queue": 0,
+    "recent_activity_exported": 0,
+    "recent_activity_total": 0,
+    "reviewed_skills_total": 0,
+    "reviews_in_progress": 0,
+    "state": "initialized-empty"
+  }
+}

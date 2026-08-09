@@ -53,8 +53,12 @@ from citation_needed import (
     db,
     discover,
     distill,
+    observatory_export,
+    read_queries,
     resolve,
     review,
+    seed,
+    update_select,
     verify,
 )
 from citation_needed.models import DETAILS_MODELS
@@ -79,6 +83,94 @@ def _build_parser() -> argparse.ArgumentParser:
         "status", help="Per-table row counts + schema version; WAL-checkpoints the DB."
     )
     p_status.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_overview = subparsers.add_parser(
+        "overview",
+        help="Versioned readiness, recent reviews, stale artifacts, and open distill queue.",
+    )
+    p_overview.add_argument(
+        "--json", action="store_true", help="Emit the versioned Overview v1 JSON contract."
+    )
+    p_overview.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_justify = subparsers.add_parser(
+        "justify",
+        help="Read deterministic reviewed-artifact justification list/detail JSON.",
+    )
+    justify_sub = p_justify.add_subparsers(dest="justify_command", required=True)
+    p_justify_list = justify_sub.add_parser(
+        "list", help="List reviewed artifacts of one type; default type is skill."
+    )
+    p_justify_list.add_argument(
+        "--type",
+        choices=sorted(DETAILS_MODELS),
+        default="skill",
+        help="Artifact type to list (default: skill).",
+    )
+    p_justify_list.add_argument(
+        "--json", action="store_true", required=True, help="Emit JustificationList v1 JSON."
+    )
+    p_justify_list.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+    p_justify_show = justify_sub.add_parser(
+        "show", help="Show claims and verified evidence for one reviewed artifact ID."
+    )
+    p_justify_show.add_argument(
+        "artifact_id", type=int, help="Artifact ID from `cite justify list`."
+    )
+    p_justify_show.add_argument(
+        "--json", action="store_true", required=True, help="Emit JustificationDetail v1 JSON."
+    )
+    p_justify_show.add_argument(
+        "--workspace-root",
+        type=Path,
+        default=None,
+        help="Root used only to read current locator sources (default: configured workspace root).",
+    )
+    p_justify_show.add_argument(
+        "--memory-root",
+        type=Path,
+        default=None,
+        help="Memory root for memory: locator sources (mainly for hermetic tests).",
+    )
+    p_justify_show.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_update_select = subparsers.add_parser(
+        "update-select",
+        help=(
+            "Print an existing citation skill handoff for a selected active skill; never invoke it."
+        ),
+    )
+    p_update_select.add_argument(
+        "--artifact-id",
+        type=int,
+        default=None,
+        help="Select this active skill directly instead of using the terminal list.",
+    )
+    p_update_select.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_observatory_export = subparsers.add_parser(
+        "observatory-export",
+        help="Write bounded read-only overview and justification artifacts for Dev Observatory.",
+    )
+    p_observatory_export.add_argument(
+        "--out",
+        type=Path,
+        default=observatory_export.DEFAULT_EXPORT_DIR,
+        help="Directory for the paired v1 JSON artifacts (default: observatory/).",
+    )
+    p_observatory_export.add_argument(
+        "--workspace-root",
+        type=Path,
+        default=None,
+        help="Root used only to relocate current choice literals in exported detail.",
+    )
+    p_observatory_export.add_argument(
+        "--memory-root",
+        type=Path,
+        default=None,
+        help="Memory root for memory: choice locators (mainly for hermetic tests).",
+    )
+    p_observatory_export.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
 
     p_scan = subparsers.add_parser(
         "scan", help="Discover + type LLM-facing artifacts and upsert them into the DB."
@@ -121,6 +213,24 @@ def _build_parser() -> argparse.ArgumentParser:
         "--limit", type=int, default=10, help="Maximum hits to return (default: 10)."
     )
     p_corpus.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_seed = subparsers.add_parser(
+        "seed",
+        help="Import the tracked CC0 bibliographic seed corpus.",
+        description="Import only the tracked Crossref/OpenAlex bibliographic seed rows through "
+        "the normal citation writer. The operation is idempotent and never fetches the network.",
+    )
+    seed_sub = p_seed.add_subparsers(dest="seed_command", required=True)
+    p_seed_import = seed_sub.add_parser(
+        "import", help="Import tracked seed rows into an initialized database."
+    )
+    p_seed_import.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+    p_seed_import.add_argument(
+        "--seed",
+        type=Path,
+        default=seed.SEED_PATH,
+        help="tracked seed JSONL path (default: seed/seed_citations.jsonl)",
+    )
 
     p_resolve = subparsers.add_parser(
         "resolve",
@@ -514,6 +624,140 @@ def _cmd_status(db_path: Path) -> int:
     return 0
 
 
+def _cmd_overview(db_path: Path, as_json: bool) -> int:
+    """Render the read-only overview without hiding absent database facts as zeroes."""
+    try:
+        overview = read_queries.overview_for_path(db_path)
+    except (OSError, sqlite3.Error) as exc:
+        print(f"error: could not read overview: {exc}")
+        return 1
+    if as_json:
+        print(json.dumps(overview.model_dump(mode="json"), sort_keys=True))
+        return 0
+
+    print(f"Citation overview: {overview.state}")
+    if overview.counts is None:
+        print("Database-derived counts are unavailable. Run `cite init-db` first.")
+        return 0
+    print(
+        f"{overview.counts.active_artifacts} active artifact(s), "
+        f"{overview.counts.completed_reviews} completed review(s), "
+        f"{overview.counts.open_distill_queue} open queue item(s)."
+    )
+    return 0
+
+
+def _cmd_justify_list(db_path: Path, artifact_type: str) -> int:
+    """Print the deterministic reviewed-artifact list without invoking any workflow."""
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    conn = db.connect(db_path)
+    try:
+        try:
+            result = read_queries.list_justifications(conn, artifact_type)
+        except (read_queries.JustificationQueryError, sqlite3.Error) as exc:
+            print(f"error: could not read justifications: {exc}")
+            return 1
+    finally:
+        conn.close()
+    print(json.dumps(result.model_dump(mode="json"), sort_keys=True))
+    return 0
+
+
+def _cmd_justify_show(
+    db_path: Path,
+    artifact_id: int,
+    workspace_root: Path | None,
+    memory_root: Path | None,
+) -> int:
+    """Print verified stored evidence and non-guessing current locators for one ID."""
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    conn = db.connect(db_path)
+    try:
+        try:
+            result = read_queries.show_justification(
+                conn,
+                artifact_id,
+                workspace_root=_default_workspace_root(workspace_root),
+                memory_root=memory_root,
+            )
+        except (read_queries.JustificationQueryError, sqlite3.Error) as exc:
+            print(f"error: could not read justification: {exc}")
+            return 1
+    finally:
+        conn.close()
+    print(json.dumps(result.model_dump(mode="json"), sort_keys=True))
+    return 0
+
+
+def _cmd_update_select(db_path: Path, artifact_id: int | None) -> int:
+    """Print, but never invoke, a canonical Citation Needed skill command."""
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    conn = db.connect(db_path)
+    try:
+        try:
+            selected: update_select.UpdateCandidate | None
+            if artifact_id is not None:
+                selected = update_select.candidate_for_artifact_id(conn, artifact_id)
+            else:
+                candidates = update_select.list_candidates(conn)
+                if not candidates:
+                    print("No active scanned skill artifacts are available for selection.")
+                    return 0
+                shown = candidates[: update_select.DISPLAY_LIMIT]
+                print(f"Active scanned skills: showing {len(shown)} of {len(candidates)}")
+                for index, candidate in enumerate(shown, start=1):
+                    print(
+                        f"  {index}. [{candidate.artifact_id}] {candidate.path} "
+                        f"— {candidate.reason}"
+                    )
+                if len(shown) < len(candidates):
+                    print("Use --artifact-id <id> to select an active skill beyond this display.")
+                try:
+                    selected = update_select.choose_candidate(shown, input)
+                except EOFError:
+                    selected = None
+            if selected is None:
+                print("Selection cancelled; no skills were invoked and no data was written.")
+                return 0
+        except (update_select.UpdateSelectError, sqlite3.Error) as exc:
+            print(f"error: could not select update handoff: {exc}")
+            return 1
+    finally:
+        conn.close()
+    assert selected is not None
+    print(selected.command)
+    print(f"Reason: {selected.reason}")
+    print("Handoff only; no skill was invoked and no data was written.")
+    return 0
+
+
+def _cmd_observatory_export(
+    db_path: Path, output_dir: Path, workspace_root: Path | None, memory_root: Path | None
+) -> int:
+    """Write the Citation Needed producer contract; no DB or target artifact is modified."""
+    try:
+        result = observatory_export.export_observatory_artifacts(
+            db_path,
+            output_dir,
+            workspace_root=_default_workspace_root(workspace_root),
+            memory_root=memory_root,
+        )
+    except observatory_export.ObservatoryExportError as exc:
+        print(f"error: could not export observatory artifacts: {exc}")
+        return 1
+    print(
+        f"Wrote {result.overview_path.as_posix()} and {result.justifications_path.as_posix()} "
+        f"({result.justifications_exported} of {result.reviewed_skills_total} reviewed skill(s))."
+    )
+    return 0
+
+
 def _cmd_scan(
     db_path: Path,
     workspace_root: Path | None,
@@ -608,6 +852,27 @@ def _cmd_corpus_search(db_path: Path, query: str, category: str | None, limit: i
     for hit in hits:
         title = hit.title or "(untitled)"
         print(f"  [{hit.citation_id}] bm25={hit.score:.3f}  {hit.natural_key}  {title}")
+    return 0
+
+
+def _cmd_seed_import(db_path: Path, seed_path: Path) -> int:
+    """Import the static CC0 seed through the sole production citation writer."""
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    conn = db.connect(db_path)
+    try:
+        try:
+            result = seed.import_seed(conn, seed_path)
+        except (seed.SeedError, verify.VerificationFailed, sqlite3.Error) as exc:
+            print(f"error: {exc}")
+            return 1
+    finally:
+        conn.close()
+    print(
+        f"Seed import: {result.processed} processed, {result.inserted} new, "
+        f"{result.existing} existing."
+    )
     return 0
 
 
@@ -1151,10 +1416,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_migrate(args.db)
     if args.command == "status":
         return _cmd_status(args.db)
+    if args.command == "overview":
+        return _cmd_overview(args.db, args.json)
+    if args.command == "justify":
+        if args.justify_command == "list":
+            return _cmd_justify_list(args.db, args.type)
+        if args.justify_command == "show":
+            return _cmd_justify_show(
+                args.db, args.artifact_id, args.workspace_root, args.memory_root
+            )
+        raise AssertionError(f"unreachable: unknown justify command {args.justify_command!r}")
+    if args.command == "update-select":
+        return _cmd_update_select(args.db, args.artifact_id)
+    if args.command == "observatory-export":
+        return _cmd_observatory_export(args.db, args.out, args.workspace_root, args.memory_root)
     if args.command == "scan":
         return _cmd_scan(args.db, args.workspace_root, args.memory_root, args.project)
     if args.command == "corpus-search":
         return _cmd_corpus_search(args.db, args.query, args.category, args.limit)
+    if args.command == "seed":
+        if args.seed_command == "import":
+            return _cmd_seed_import(args.db, args.seed)
+        raise AssertionError(f"unreachable: unknown seed command {args.seed_command!r}")
     if args.command == "resolve":
         return _cmd_resolve(args.db, args.query)
     if args.command == "review":

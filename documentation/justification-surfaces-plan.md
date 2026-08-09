@@ -61,6 +61,7 @@ contracts rather than creating a convenience integration between them.
 ## 7. Build Steps
 
 ### Step 11: Overview and readiness JSON
+- **Status:** done (2026-08-09; focused and full verification passed)
 - **Problem:** Replace opaque table counts with a versioned overview that distinguishes uninitialized,
   initialized-empty, ready, stale, and review-in-progress states and includes recent activity.
 - **Type:** code
@@ -73,6 +74,7 @@ contracts rather than creating a convenience integration between them.
 - **Depends on:** 7
 
 ### Step 12: Skill justification list/detail
+- **Status:** done (2026-08-09; focused and full verification passed)
 - **Problem:** Add deterministic list/show queries for reviewed skills, claims, exact locators,
   classifications, citation records, documented search absence, review provenance, and
   exact/ambiguous/missing current-locator status.
@@ -87,6 +89,7 @@ contracts rather than creating a convenience integration between them.
 - **Depends on:** 9, 11
 
 ### Step 13: Update selector over existing skills
+- **Status:** done (2026-08-09; focused and full verification passed)
 - **Problem:** Add a terminal selector that picks an artifact then prints the exact
   `/citation-review` or `/citation-distill` command; do not invoke Claude or duplicate prompts,
   calibration, or writes.
@@ -100,6 +103,9 @@ contracts rather than creating a convenience integration between them.
 - **Depends on:** 8, 12
 
 ### Step 14: Observatory artifact export
+- **Status:** CODE COMPLETE (2026-08-09; exporter, fixture contracts, and full
+  automated verification pass; a real completed reviewed `skill` artifact is
+  still required before this step can be marked DONE)
 - **Problem:** Write one bounded, versioned overview + justification list/detail artifact and
   contract fixtures. dev-observatory alone owns labels, registry integration, and setup-button removal.
 - **Type:** code

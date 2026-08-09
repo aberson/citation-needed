@@ -2,6 +2,7 @@
 # review output never enter git history — exclusion from commit 0, never scrub-later.
 data/
 breakdowns/
+observatory/
 *.db
 *.db-*
 *.sqlite3

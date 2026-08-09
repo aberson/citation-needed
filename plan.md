@@ -500,6 +500,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 - **Produces:** seed/seed_citations.jsonl, seed/PROVENANCE.md, seed import CLI verb, tests
 - **Done when:** fresh DB + `seed import` twice → no duplicates; FTS5 `corpus-search "lost in the middle"` hits the seeded row; PROVENANCE.md lists every source with its license basis; zero S2-attributed rows present.
 - **Depends on:** 3
+- **Status:** DONE (2026-08-09)
 
 ### Step 8: The four skills (two-repo step)
 - **Problem:** Author `dev/.claude/skills/citation-{review,distill,sweep,triage}/SKILL.md` as thin wrappers over `uv run --project citation-needed cite <verb>` (observatory-doctor idiom): citation-review embeds the §4.1 flow + calibrate mode + stdin JSON contracts; citation-sweep embeds near-duplicate clustering + per-artifact subagent fan-out with terse-verdict returns (subagent-economy.md); citation-distill and citation-triage wrap their verbs. NOTE: SKILL.md files land in the CODING-ROOT repo; any engine tweaks land in citation-needed — two scoped commits, wrong-dir guard applied per repo.
@@ -509,6 +510,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 - **Produces:** 4 SKILL.md files under dev/.claude/skills/, minor CLI adjustments if contract gaps surface
 - **Done when:** each SKILL.md's embedded commands grep-match real CLI verbs (`cite --help` output); frontmatter is the standard 3 fields spelled `user-invocable` (no `argument:`/`user-invokable` drift per `corpus-survey.md` §8); junction-exposure verified (`ls ~/.claude/skills/citation-review/`).
 - **Depends on:** 4, 5, 6
+- **Status:** DONE (2026-08-09)
 
 ### Step 9: End-to-end smoke — calibrate, then one real review
 - **Problem:** Exercise the full production path once with real components (no mocks): run calibration through the skill+CLI pipeline to a green gate, then a real `/citation-review` of `.claude/rules/subagent-economy.md` with live corpus-first lookup and live web verification.
@@ -518,6 +520,15 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 - **Produces:** a real breakdown doc, real DB rows, a short smoke report in docs/
 - **Done when:** calibration passes the 4-assertion gate on real anchors; the review yields ≥2 choices with both citation classes represented; `git status` of the coding-root repo shows zero modifications to the reviewed target; `cite report` renders the result.
 - **Depends on:** 5, 8
+- **Status:** DONE (2026-08-09) — initialized the real local corpus (4 CC0 seed records),
+  scanned the coding-root, and searched the corpus before reviewing
+  `.claude/rules/subagent-economy.md` (no subagent-economy hit). Three independent live
+  Claude Code judgments drove the frozen calibration anchors: good composite 95.0,
+  garbage composite 0.0, margin 95.0, and 0.0% parse failures. The real review committed
+  run #1 with two evidence-backed choices, verified internal workspace evidence, and one
+  server-side verified external web source; it rendered a 100.0/100 strong breakdown.
+  The reviewed target remained unmodified. Recalibration after the new citations produced
+  a valid current corpus fingerprint (6:6); see `docs/smoke-review-1.md`.
 
 ### Step 10: Observation run — small real sweep + findings
 - **Problem:** Run `/citation-sweep` over one bounded real scope (the 13 root `.claude/rules/*.md` files) with per-artifact subagent fan-out; capture an observation findings doc: wall-clock + per-API call counts and failures, near-duplicate cluster ratio, corpus-hit-rate curve across the pass, queue output sanity. File issues for anything surfaced rather than fixing in-step.
@@ -527,6 +538,13 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 - **Produces:** docs/observation-run-1.md, distill_queue rows for the rules corpus
 - **Done when:** the sweep completes all 13 artifacts (or documents each abstention); findings doc contains the four metric families; zero unhandled exceptions (failures are recorded outcomes, not crashes); ranked queue is non-empty and ordered by the §4.4 rank formula.
 - **Depends on:** 6, 9
+- **Status:** DONE (2026-08-09) — completed a bounded live sweep of all 13 root
+  `.claude/rules/*.md` artifacts with current review runs #2–#14, no target edits, and
+  a valid post-run calibration fingerprint. The 13-query corpus curve yielded one hit
+  (7.69%); the exact dry-run-block search had no direct hit and only tangential web
+  results, yielding one ranked `trim` queue row (rank 2.25). The findings record the
+  model/API counts, controlled validation refusal, duplicate check, and queue evidence:
+  `docs/observation-run-1.md`. Classifier evidence-boundary follow-up: #15.
 
 ### Manual Steps
 (These run after /build-phase completes. Operator drives.)
