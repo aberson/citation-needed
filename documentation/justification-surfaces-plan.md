@@ -65,7 +65,7 @@ contracts rather than creating a convenience integration between them.
 - **Problem:** Replace opaque table counts with a versioned overview that distinguishes uninitialized,
   initialized-empty, ready, stale, and review-in-progress states and includes recent activity.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #17
 - **Flags:** --reviewers code --isolation worktree
 - **Files:** `src/citation_needed/read_queries.py`, `src/citation_needed/models.py`,
   `src/citation_needed/cli.py`, `tests/test_read_queries.py`, `tests/test_cli.py`
@@ -79,7 +79,7 @@ contracts rather than creating a convenience integration between them.
   classifications, citation records, documented search absence, review provenance, and
   exact/ambiguous/missing current-locator status.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #18
 - **Flags:** --reviewers deep --isolation worktree
 - **Files:** `src/citation_needed/read_queries.py`, `src/citation_needed/breakdown.py`,
   `src/citation_needed/models.py`, `src/citation_needed/cli.py`,
@@ -94,7 +94,7 @@ contracts rather than creating a convenience integration between them.
   `/citation-review` or `/citation-distill` command; do not invoke Claude or duplicate prompts,
   calibration, or writes.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #19
 - **Flags:** --reviewers code
 - **Files:** `src/citation_needed/update_select.py`, `src/citation_needed/cli.py`,
   `tests/test_update_select.py`, `docs/observatory-contract.md`
@@ -103,13 +103,19 @@ contracts rather than creating a convenience integration between them.
 - **Depends on:** 8, 12
 
 ### Step 14: Observatory artifact export
-- **Status:** CODE COMPLETE (2026-08-09; exporter, fixture contracts, and full
-  automated verification pass; a real completed reviewed `skill` artifact is
-  still required before this step can be marked DONE)
+- **Status:** CODE COMPLETE — **NOT DONE** (code merged to master as `3e3cf12` on 2026-08-10,
+  full suite green at 387 passed / 2 deselected; exporter, fixture contracts, and all automated
+  verification pass). The exit criterion is unmet: every automated test runs against synthetic or
+  empty fixtures, and `Done when` requires a **real** reviewed `skill` artifact to round-trip.
+  No `/citation-review` run has ever produced one. Verified 2026-08-10 against the production
+  surface: `cite justify list --type skill --json` returns `{"artifact_type": "skill",
+  "items": [], "schema_version": 1}`. The 13 breakdowns in `breakdowns/` are all artifact type
+  `rule`; none are type `skill`. Clearing this requires Step 15's real populated smoke — do not
+  mark DONE until then.
 - **Problem:** Write one bounded, versioned overview + justification list/detail artifact and
   contract fixtures. dev-observatory alone owns labels, registry integration, and setup-button removal.
 - **Type:** code
-- **Issue:** #
+- **Issue:** #20 (OPEN — stays open until the exit criterion below is met)
 - **Flags:** --reviewers code
 - **Files:** `src/citation_needed/observatory_export.py`, `src/citation_needed/cli.py`,
   `tests/test_observatory_export.py`, `docs/observatory-contract.md`
