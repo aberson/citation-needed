@@ -32,6 +32,10 @@ Purely mechanical verbs (the CLI never calls an LLM). v1 verbs:
   status 'rejected' (proposal declined, target text stays); --cut/--rewrite ->
   status 'accepted' ('applied' is out of scope — target edits happen outside
   citation-needed)
+- ``cite seed import``     — idempotent import of the tracked CC0-safe seed corpus
+  (seed/seed_citations.jsonl) through the anti-fabrication gate; dedup on natural_key
+  (second import: zero new rows). Offline — trusts the reviewed-committed file, whose
+  rows were re-derived live at seed-BUILD time (see seed/PROVENANCE.md)
 """
 
 from __future__ import annotations
@@ -55,6 +59,7 @@ from citation_needed import (
     distill,
     resolve,
     review,
+    seed,
     verify,
 )
 from citation_needed.models import DETAILS_MODELS
@@ -456,6 +461,49 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Resolver identity recorded as resolved_by (default: env USERNAME, then USER).",
     )
     p_queue_resolve.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
+
+    p_seed = subparsers.add_parser(
+        "seed",
+        help="Tracked seed-corpus operations: import (idempotent, offline).",
+    )
+    seed_sub = p_seed.add_subparsers(dest="seed_command", required=True)
+
+    p_seed_import = seed_sub.add_parser(
+        "import",
+        help="Import seed/seed_citations.jsonl through the anti-fabrication gate; "
+        "idempotent (dedup on natural_key). Offline — trusts the reviewed-committed "
+        "seed file, whose rows were verified live at seed-BUILD time.",
+        description="Reads the tracked CC0-safe seed corpus (seed/seed_citations.jsonl) "
+        "and inserts each row as an api_structured citation through the anti-fabrication "
+        "gate (verify.insert_citation), storing the row's own recorded fields as the "
+        "resolution echo. TRUST BOUNDARY: every row was re-derived LIVE from Crossref/"
+        "OpenAlex at seed-BUILD time and reviewed into git; this import is OFFLINE and "
+        "trusts the tracked file — verification happened at build time, not import time "
+        "(per-source license terms + per-row provenance: seed/PROVENANCE.md). The trust "
+        "extends ONLY to that tracked file: its rows' notes pin the file's sha256 at "
+        "import time; any other --seed-file path refuses unless --allow-untracked is "
+        "passed, and is then recorded as an untracked source with no verification "
+        "provenance claim. Idempotent: a natural_key already in the corpus is skipped "
+        "untouched (no verified_at refresh — the import re-verified nothing); a second "
+        "import reports zero imported. A malformed file rejects whole — nothing partial "
+        "is imported.",
+    )
+    p_seed_import.add_argument(
+        "--seed-file",
+        type=Path,
+        default=None,
+        help="Path to the seed JSONL (default: seed/seed_citations.jsonl under the "
+        "project root). A non-canonical path requires --allow-untracked.",
+    )
+    p_seed_import.add_argument(
+        "--allow-untracked",
+        action="store_true",
+        help="Required to import from a --seed-file other than the tracked "
+        "seed/seed_citations.jsonl. Untracked rows are stored with notes naming the "
+        "actual source file and stating that verification provenance was NOT "
+        "established by this import (they never claim seed-build-time verification).",
+    )
+    p_seed_import.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
 
     return parser
 
@@ -1142,6 +1190,56 @@ def _cmd_queue_resolve(db_path: Path, queue_id: int, decision: str, by: str | No
     return 0
 
 
+def _cmd_seed_import(db_path: Path, seed_file: Path | None, allow_untracked: bool) -> int:
+    if not db_path.exists():
+        print(f"error: database does not exist (run `cite init-db` first): {db_path.as_posix()}")
+        return 1
+    source = seed_file if seed_file is not None else seed.DEFAULT_SEED_FILE
+    trusted = seed.is_canonical_seed_file(source)
+    if not trusted and not allow_untracked:
+        print(
+            f"error: --seed-file {Path(source).as_posix()} is not the tracked seed corpus "
+            f"({seed.DEFAULT_SEED_FILE.as_posix()}); refusing to import untracked data with "
+            "seed-verified provenance. Pass --allow-untracked to import it anyway — its rows "
+            "will be recorded as an untracked source (no seed-build-time verification claim)."
+        )
+        return 1
+    try:
+        rows = seed.load_seed_rows(source)
+    except seed.SeedError as exc:
+        print(f"error: {exc}")
+        return 1
+    provenance_note = seed.seed_provenance_note(source, trusted=trusted)
+    conn = db.connect(db_path)
+    try:
+        try:
+            with conn:  # one transaction — a mid-import failure imports nothing
+                result = seed.import_seed(conn, rows, provenance_note=provenance_note)
+        except (verify.VerificationFailed, sqlite3.Error) as exc:
+            print(f"error: {exc}")
+            return 1
+    finally:
+        conn.close()
+    print(f"Seed corpus: {Path(source).as_posix()}")
+    for outcome in result.outcomes:
+        if outcome.outcome == "imported":
+            print(f"  [{outcome.citation_id}] {outcome.natural_key} imported")
+        else:
+            print(f"  {outcome.natural_key} skipped (already in corpus; left untouched)")
+    print(
+        f"Imported {result.imported} new citation(s); skipped {result.skipped} "
+        "already-present row(s) (dedup on natural_key)."
+    )
+    if trusted:
+        print(
+            "Note: seed rows were verified live at seed-build time (Crossref/OpenAlex); "
+            "this offline import trusts the tracked file (seed/PROVENANCE.md)."
+        )
+    else:
+        print(f"Note: {seed.UNTRACKED_NOTE}.")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Entry point for the ``cite`` console script. Returns a process exit code."""
     args = _build_parser().parse_args(argv)
@@ -1193,6 +1291,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.queue_command == "resolve":
             return _cmd_queue_resolve(args.db, args.id, args.decision, args.by)
         raise AssertionError(f"unreachable: unknown queue command {args.queue_command!r}")
+    if args.command == "seed":
+        if args.seed_command == "import":
+            return _cmd_seed_import(args.db, args.seed_file, args.allow_untracked)
+        raise AssertionError(f"unreachable: unknown seed command {args.seed_command!r}")
     raise AssertionError(f"unreachable: unknown command {args.command!r}")
 
 

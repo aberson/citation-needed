@@ -40,7 +40,7 @@ def _seed_citation(
     keywords: str | None = None,
 ) -> int:
     """Insert through the PRODUCTION writer so the FTS5 sync triggers are exercised."""
-    citation_id = verify.insert_citation(
+    citation_id, _created = verify.insert_citation(
         conn,
         kind="external",
         resolution_method="api_structured",

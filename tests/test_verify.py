@@ -436,7 +436,7 @@ def test_fetch_url_result_feeds_insert_citation_round_trip(conn: sqlite3.Connect
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         result = verify.fetch_url("http://pub.test/paper", client, resolver=_fake_resolver)
-    citation_id = verify.insert_citation(
+    citation_id, created = verify.insert_citation(
         conn,
         kind="external",
         resolution_method="web_fetch_verified",
@@ -446,6 +446,7 @@ def test_fetch_url_result_feeds_insert_citation_round_trip(conn: sqlite3.Connect
         fetch_result=result,
     )
     assert citation_id >= 1
+    assert created is True
     assert _citation_count(conn) == 1
 
 
@@ -453,7 +454,7 @@ def test_web_fetch_verified_happy_path(
     conn: sqlite3.Connection, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(verify, "_pipeline_now", lambda: "2026-07-21T12:00:00Z")
-    citation_id = verify.insert_citation(
+    citation_id, _created = verify.insert_citation(
         conn,
         kind="external",
         resolution_method="web_fetch_verified",
@@ -486,7 +487,7 @@ def test_verified_at_is_never_a_caller_argument() -> None:
 
 def test_api_structured_stores_the_json_echo(conn: sqlite3.Connection) -> None:
     echo: dict[str, Any] = {"paperId": "abc123", "title": "Lost in the Middle", "year": 2023}
-    citation_id = verify.insert_citation(
+    citation_id, _created = verify.insert_citation(
         conn,
         kind="external",
         resolution_method="api_structured",
@@ -524,7 +525,7 @@ def test_internal_read_verifies_against_the_actual_file(
     (workspace / "docs" / "lesson.md").write_text(
         "# Lesson\n\nGrep every consumer of the old shape before landing.\n", encoding="utf-8"
     )
-    citation_id = verify.insert_citation(
+    citation_id, _created = verify.insert_citation(
         conn,
         kind="internal",
         resolution_method="internal-read",
@@ -626,7 +627,7 @@ def test_dedup_on_doi_natural_key_is_idempotent(
     conn: sqlite3.Connection, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(verify, "_pipeline_now", lambda: "2026-07-21T10:00:00Z")
-    first = verify.insert_citation(
+    first, first_created = verify.insert_citation(
         conn,
         kind="external",
         resolution_method="api_structured",
@@ -635,7 +636,7 @@ def test_dedup_on_doi_natural_key_is_idempotent(
         api_echo={"paperId": "abc123"},
     )
     monkeypatch.setattr(verify, "_pipeline_now", lambda: "2026-07-21T11:30:00Z")
-    second = verify.insert_citation(
+    second, second_created = verify.insert_citation(
         conn,
         kind="external",
         resolution_method="api_structured",
@@ -644,6 +645,7 @@ def test_dedup_on_doi_natural_key_is_idempotent(
         api_echo={"paperId": "abc123", "again": True},
     )
     assert first == second  # same natural key -> same row id, no duplicate
+    assert first_created is True and second_created is False  # created reports the truth
     assert _citation_count(conn) == 1
     verified_at = conn.execute(
         "SELECT verified_at FROM citations WHERE id = ?", (first,)
@@ -651,9 +653,39 @@ def test_dedup_on_doi_natural_key_is_idempotent(
     assert verified_at == "2026-07-21T11:30:00Z"  # reuse refreshed the re-verification stamp
 
 
+def test_conflict_without_refresh_preserves_verified_at(
+    conn: sqlite3.Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """refresh_on_conflict=False: reuse WITHOUT a re-verification claim — the existing
+    row (verified_at included) stays byte-identical. The seed import's atomic dedup."""
+    monkeypatch.setattr(verify, "_pipeline_now", lambda: "2026-07-21T10:00:00Z")
+    first, first_created = verify.insert_citation(
+        conn,
+        kind="external",
+        resolution_method="api_structured",
+        title="Lost in the Middle",
+        doi="10.48550/arXiv.2307.03172",
+        api_echo={"paperId": "abc123"},
+    )
+    before = conn.execute("SELECT * FROM citations WHERE id = ?", (first,)).fetchone()
+    monkeypatch.setattr(verify, "_pipeline_now", lambda: "2026-07-21T11:30:00Z")
+    second, second_created = verify.insert_citation(
+        conn,
+        kind="external",
+        resolution_method="api_structured",
+        title="Lost in the Middle (seed re-import)",
+        doi="10.48550/arXiv.2307.03172",
+        api_echo={"paperId": "abc123"},
+        refresh_on_conflict=False,
+    )
+    assert (first, True) == (second, first_created) and second_created is False
+    assert conn.execute("SELECT * FROM citations WHERE id = ?", (first,)).fetchone() == before
+    assert _citation_count(conn) == 1
+
+
 def test_dedup_on_normalized_url(conn: sqlite3.Connection) -> None:
     quote = "performance is often highest"
-    first = verify.insert_citation(
+    first, _created = verify.insert_citation(
         conn,
         kind="external",
         resolution_method="web_fetch_verified",
@@ -662,7 +694,7 @@ def test_dedup_on_normalized_url(conn: sqlite3.Connection) -> None:
         supporting_quote=quote,
         fetch_result=_fetch_result(FETCHED),
     )
-    second = verify.insert_citation(
+    second, _created = verify.insert_citation(
         conn,
         kind="external",
         resolution_method="web_fetch_verified",
@@ -701,7 +733,7 @@ def test_concurrent_inserts_same_identity_are_idempotent(tmp_path: Path) -> None
                         title="Lost in the Middle",
                         doi="10.48550/arXiv.2307.03172",
                         api_echo={"paperId": "abc123"},
-                    )
+                    )[0]
                 )
         except Exception as exc:  # the assertion below IS "no exception escaped"
             errors.append(exc)

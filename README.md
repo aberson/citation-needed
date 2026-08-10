@@ -47,7 +47,9 @@ uv sync
 # 2. create the database (7 tables + FTS5 corpus index)
 uv run cite init-db
 
-# 3. optional: import the tracked CC0 seed corpus
+# 3. optional: import the tracked CC0 seed corpus (Crossref-derived bibliographic
+#    rows, verified live at seed-build time; idempotent — per-source terms and
+#    per-row provenance in seed/PROVENANCE.md)
 uv run cite seed import
 
 # 4. optional: enable the OpenAlex fallback tier

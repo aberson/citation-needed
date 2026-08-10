@@ -460,8 +460,12 @@ def insert_citation(
     notes: str | None = None,
     source_git_sha: str | None = None,
     source_line_ref: str | None = None,
-) -> int:
+    refresh_on_conflict: bool = True,
+) -> tuple[int, bool]:
     """THE sole writer to ``citations``. Verifies the resolution record, then inserts.
+
+    Returns ``(citation_id, created)`` — ``created`` is True when THIS call inserted a
+    new row, False when the identity already existed and the existing row was reused.
 
     The NOT NULL resolution record, enforced here per method (schema CHECKs are the
     structural backstop — ``kind='external'`` requires ``url_or_doi``; the
@@ -488,11 +492,14 @@ def insert_citation(
 
     Dedup: ``UNIQUE(kind, natural_key)`` where the natural key is the normalized DOI,
     else the normalized URL, else the workspace path. Re-inserting an existing citation
-    is idempotent: the existing row's id returns (its ``verified_at`` refreshed, since
-    this call did re-verify) and no duplicate row is created. The dedup is an atomic
-    upsert (``ON CONFLICT DO NOTHING`` + same-transaction re-select), never a
-    check-then-insert, so concurrent connections inserting the same identity cannot
-    raise ``IntegrityError``.
+    is idempotent: the existing row's id returns (with ``created=False``) and no
+    duplicate row is created. By default the existing row's ``verified_at`` refreshes,
+    since this call did re-verify; a caller that performed NO fresh verification (the
+    offline seed import) passes ``refresh_on_conflict=False`` and the existing row is
+    returned COMPLETELY untouched — same atomic code path, no claim of re-verification.
+    The dedup is an atomic upsert (``ON CONFLICT DO NOTHING`` + same-transaction
+    re-select), never a check-then-insert, so concurrent connections inserting the same
+    identity cannot raise ``IntegrityError``.
 
     Transactions belong to the caller (`with conn:`); this function only executes.
     """
@@ -598,10 +605,11 @@ def insert_citation(
     )
     if cursor.rowcount == 1:
         assert cursor.lastrowid is not None
-        return int(cursor.lastrowid)
+        return int(cursor.lastrowid), True
 
     # Conflict path — idempotent reuse: same identity -> same row. verified_at
-    # refreshes because THIS call re-verified; nothing else on the row is touched.
+    # refreshes only when THIS call re-verified (refresh_on_conflict, the default);
+    # nothing else on the row is ever touched.
     row = conn.execute(
         "SELECT id FROM citations WHERE kind = ? AND natural_key = ?",
         (kind, natural_key),
@@ -610,8 +618,9 @@ def insert_citation(
         raise VerificationFailed(
             f"citation upsert conflicted but no row exists for ({kind!r}, {natural_key!r})"
         )
-    conn.execute("UPDATE citations SET verified_at = ? WHERE id = ?", (verified_at, row[0]))
-    return int(row[0])
+    if refresh_on_conflict:
+        conn.execute("UPDATE citations SET verified_at = ? WHERE id = ?", (verified_at, row[0]))
+    return int(row[0]), False
 
 
 __all__ = [

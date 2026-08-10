@@ -764,7 +764,7 @@ def _resolve_citation_id(
     if entry.resolution_method == "api_structured":
         # The echo was captured by OUR structured-API lookup in the pre-transaction
         # phase (_api_structured_echo) — a caller-supplied echo never exists here.
-        return verify.insert_citation(
+        citation_id, _created = verify.insert_citation(
             conn,
             kind="external",
             resolution_method="api_structured",
@@ -778,10 +778,11 @@ def _resolve_citation_id(
             keywords=keywords,
             notes=entry.notes,
         )
+        return citation_id
     if entry.resolution_method == "web_fetch_verified":
         # The FetchResult was produced by OUR verify.fetch_url call in the pre-fetch
         # phase — caller-supplied page text never exists in this pipeline.
-        return verify.insert_citation(
+        citation_id, _created = verify.insert_citation(
             conn,
             kind="external",
             resolution_method="web_fetch_verified",
@@ -796,7 +797,8 @@ def _resolve_citation_id(
             keywords=keywords,
             notes=entry.notes,
         )
-    return verify.insert_citation(
+        return citation_id
+    citation_id, _created = verify.insert_citation(
         conn,
         kind="internal",
         resolution_method="internal-read",
@@ -810,6 +812,7 @@ def _resolve_citation_id(
         source_git_sha=run_git_sha,
         source_line_ref=entry.source_line_ref,
     )
+    return citation_id
 
 
 def _commit_citation(
