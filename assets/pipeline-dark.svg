@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 308" font-family="ui-monospace,'Cascadia Code','SF Mono',Consolas,'Roboto Mono',monospace" role="img" aria-label="The Citation Needed review pipeline. SCAN: cite scan types 5 artifact kinds, cite calibrate check requires good at least 65 and garbage at most 35, cite review open freezes the content hash and git sha. EXTRACT then CITE, in the skill layer: extract choices whose keys survive a rewrite, preview existing corpus hits via FTS5 before spending a live API call, and fall through to live resolve, Semantic Scholar then OpenAlex, for gaps. CLASSIFY, in the skill layer: at least 3 independent judge votes, one label per call, majority to classification, ties escalate k to 5 then 7. VERIFY then COMMIT, in the CLI: the verify gate re-verifies everything because the payload carries no evidence; on pass, a 0 to 100 composite score in four bands where 70 or more is strong, then the breakdown doc plus database rows with zero edits to the target; on fail, nothing is written because one failure rejects the whole payload.">
+  <defs>
+    <marker id="ar-dark" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#384153"/></marker>
+    <marker id="ar-s-dark" markerWidth="10" markerHeight="10" refX="7.5" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#6e9bff"/></marker>
+    <marker id="ar-r-dark" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#ff8ba1"/></marker>
+    <filter id="sh-dark" x="-20%" y="-45%" width="140%" height="190%"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="rgba(0,0,0,.5)"/></filter>
+  </defs>
+  <style>
+    .bg{fill:#161c26;stroke:#29313f;stroke-width:1.5}
+    .lnk{fill:none;stroke:#384153;stroke-width:1.7}
+    .fb{fill:none;stroke:#384153;stroke-width:1.7;stroke-dasharray:4 3}
+    .spine{fill:none;stroke:#6e9bff;stroke-width:2.4}
+    .rej{fill:none;stroke:#ff8ba1;stroke-width:1.7;stroke-dasharray:5 4}
+    .node rect{fill:#161c26;stroke:#384153;stroke-width:1.4;filter:url(#sh-dark)}
+    .stop rect{fill:#161c26;stroke:#ff8ba1;stroke-width:1.4;stroke-dasharray:5 4;filter:url(#sh-dark)}
+    .pn{fill:#6e9bff;font-size:13px;font-weight:600}
+    .rn{fill:#ff8ba1;font-size:13px;font-weight:600}
+    .ps{fill:#7c8598;font-size:10.5px}
+    .rj{fill:#ff8ba1;font-size:10.5px}
+    .lbl{fill:#7c8598;font-size:11px;letter-spacing:.12em;font-weight:600}
+    .cap{fill:#7c8598;font-size:10.5px}
+  </style>
+  <rect class="bg" x="6" y="6" width="988" height="296" rx="16"/>
+  <text class="lbl" x="24" y="32">SCAN</text>
+  <text class="lbl" x="280" y="32">EXTRACT → CITE</text>
+  <text class="lbl" x="536" y="32">CLASSIFY</text>
+  <text class="lbl" x="792" y="32">VERIFY → COMMIT</text>
+  <path class="spine" marker-end="url(#ar-s-dark)" d="M224,135 L280,135"/>
+  <path class="spine" marker-end="url(#ar-s-dark)" d="M480,135 L536,135"/>
+  <path class="spine" marker-end="url(#ar-s-dark)" d="M736,135 L792,135"/>
+
+  <g class="node"><rect x="24" y="48" width="200" height="46" rx="10"/><text class="pn" x="38" y="69">cite scan</text><text class="ps" x="38" y="86">types 5 artifact kinds</text></g>
+  <path class="lnk" marker-end="url(#ar-dark)" d="M124,94 L124,112"/>
+  <g class="node"><rect x="24" y="112" width="200" height="46" rx="10"/><text class="pn" x="38" y="133">cite calibrate check</text><text class="ps" x="38" y="150">good ≥ 65 · garbage ≤ 35</text></g>
+  <path class="lnk" marker-end="url(#ar-dark)" d="M124,158 L124,176"/>
+  <g class="node"><rect x="24" y="176" width="200" height="46" rx="10"/><text class="pn" x="38" y="197">cite review open</text><text class="ps" x="38" y="214">freezes hash + git sha</text></g>
+
+  <g class="node"><rect x="280" y="48" width="200" height="46" rx="10"/><text class="pn" x="294" y="69">extract choices</text><text class="ps" x="294" y="86">keys survive a rewrite</text></g>
+  <path class="lnk" marker-end="url(#ar-dark)" d="M380,94 L380,112"/>
+  <g class="node"><rect x="280" y="112" width="200" height="46" rx="10"/><text class="pn" x="294" y="133">corpus first (FTS5)</text><text class="ps" x="294" y="150">previewed before a live call</text></g>
+  <path class="fb" marker-end="url(#ar-dark)" d="M380,158 L380,176"/>
+  <text class="ps" x="388" y="171">for gaps</text>
+  <g class="node"><rect x="280" y="176" width="200" height="46" rx="10"/><text class="pn" x="294" y="197">live resolve</text><text class="ps" x="294" y="214">S2 → OpenAlex fallback</text></g>
+
+  <g class="node"><rect x="536" y="80" width="200" height="46" rx="10"/><text class="pn" x="550" y="101">k ≥ 3 judge votes</text><text class="ps" x="550" y="118">one label per call</text></g>
+  <path class="lnk" marker-end="url(#ar-dark)" d="M636,126 L636,144"/>
+  <g class="node"><rect x="536" y="144" width="200" height="46" rx="10"/><text class="pn" x="550" y="165">majority → class</text><text class="ps" x="550" y="182">ties escalate k = 5, 7</text></g>
+
+  <g class="node"><rect x="792" y="48" width="200" height="46" rx="10"/><text class="pn" x="806" y="69">verify gate</text><text class="ps" x="806" y="86">payload carries no evidence</text></g>
+  <path class="lnk" marker-end="url(#ar-dark)" d="M904,94 L904,112"/>
+  <text class="ps" x="910" y="107">pass</text>
+  <path class="rej" marker-end="url(#ar-r-dark)" d="M804,94 L804,238"/>
+  <text class="rj" x="798" y="107" text-anchor="end">fail</text>
+  <g class="node"><rect x="816" y="112" width="176" height="46" rx="10"/><text class="pn" x="830" y="133">composite score</text><text class="ps" x="830" y="150">four bands, ≥ 70 = strong</text></g>
+  <path class="lnk" marker-end="url(#ar-dark)" d="M904,158 L904,176"/>
+  <g class="node"><rect x="816" y="176" width="176" height="46" rx="10"/><text class="pn" x="830" y="197">breakdown doc</text><text class="ps" x="830" y="214">+ DB rows; zero edits</text></g>
+  <g class="stop"><rect x="792" y="238" width="200" height="48" rx="10"/><text class="rn" x="806" y="259">nothing written</text><text class="rj" x="806" y="276">one failure rejects it all</text></g>
+
+  <text class="cap" x="24" y="259">skill layer (LLM judgment): extract · cite · classify</text>
+  <text class="cap" x="24" y="276">cite CLI (no model, ever): scan · verify · score · breakdown</text>
+</svg>

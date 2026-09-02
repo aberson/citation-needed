@@ -14,6 +14,11 @@ recorded, legitimate finding, not a failure.
 > **Status:** plan complete ([plan.md](plan.md), 12 sections, grounded in ten investigations
 > under [docs/research/](docs/research/)); implementation in progress via the tracked issues.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/pipeline-dark.svg">
+  <img alt="The Citation Needed review pipeline. SCAN: cite scan types 5 artifact kinds; cite calibrate check requires good at least 65 and garbage at most 35; cite review open freezes the content hash and git sha. EXTRACT then CITE (skill layer): extract choices whose keys survive a rewrite; preview existing corpus hits via FTS5 before spending a live API call; fall through to live resolve (Semantic Scholar then OpenAlex) for gaps. CLASSIFY (skill layer): at least 3 independent judge votes, one label per call; majority to classification, ties escalate k to 5 then 7. VERIFY then COMMIT (CLI): the verify gate re-verifies everything because the payload carries no evidence; on pass, a 0-100 composite in four bands where 70 or more is strong, then the breakdown doc plus database rows with zero edits to the target; on fail, nothing is written, because one failure rejects the whole payload." src="assets/pipeline-light.svg">
+</picture>
+
 ## Stack
 
 | Layer | Tool | Why |
