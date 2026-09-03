@@ -85,7 +85,7 @@ already track for skills and rules.
 ### Where it exists
 
 - **Workspace: confirmed absent, re-verified this run.** `Glob **/.claude/agents/*.md` from
-  `c:/Users/abero/dev` returns zero hits (matches the prior corpus-survey finding at
+  `c:/Users/x/dev` returns zero hits (matches the prior corpus-survey finding at
   `docs/research/corpus-survey.md:414-416`). Dot-directories are not being silently skipped by the
   Glob tool — `.claude/commands/`, `.claude/rules/`, and vendored `AGENTS.md`/`GEMINI.md` hits all
   resolved correctly in this same run — so this is a genuine, re-confirmed absence, not a tooling

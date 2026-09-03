@@ -32,7 +32,7 @@ fingerprint, leaving the next review eligible for the gate.
 ```powershell
 uv run --project citation-needed cite init-db
 uv run --project citation-needed cite seed import
-uv run --project citation-needed cite scan --workspace-root C:\Users\abero\dev
+uv run --project citation-needed cite scan --workspace-root C:\Users\x\dev
 uv run --project citation-needed cite corpus-search "subagent economy"
 uv run --project citation-needed cite calibrate open --reviewer-model "claude-code-2.1.212"
 uv run --project citation-needed cite calibrate commit --model "claude-code-2.1.212"

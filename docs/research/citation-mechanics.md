@@ -1,6 +1,6 @@
 # Citation acquisition + verification pipeline
 
-Research pass for **citation-needed** (workspace root `c:/Users/abero/dev`), scoped to the riskiest
+Research pass for **citation-needed** (workspace root `c:/Users/x/dev`), scoped to the riskiest
 moving part: how a citation actually gets from "the review thinks this choice needs a source" to a
 row in SQLite that a later reviewer can trust without re-verifying it. All external claims below were
 checked live this session (WebSearch + WebFetch, both confirmed present as deferred harness tools —
@@ -190,7 +190,7 @@ query a stable field to filter on instead of pure free text.
 
 ## (f) Cost/latency envelope for a project-wide pass
 
-**Grounded counts, not a guess** (`Glob` run against `c:/Users/abero/dev` this session):
+**Grounded counts, not a guess** (`Glob` run against `c:/Users/x/dev` this session):
 
 - `**/.claude/skills/*/SKILL.md` → **124** files (root + all projects, including per-project copies
   under `shake_spear/projects/*`).

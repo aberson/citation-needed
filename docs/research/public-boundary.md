@@ -1,7 +1,7 @@
 # citation-needed — Open-source boundary + license
 
 Research pass for the citation-needed planning effort. Read-only investigation; workspace was
-not modified except for this file. Workspace root: `c:/Users/abero/dev`. Date: 2026-07-21.
+not modified except for this file. Workspace root: `c:/Users/x/dev`. Date: 2026-07-21.
 
 ## TL;DR / Verdict
 
@@ -42,12 +42,12 @@ not modified except for this file. Workspace root: `c:/Users/abero/dev`. Date: 2
 | Calibration garbage-anchor fixture (synthetic bad rule file) | Yes | See §(d). |
 | A CC0-sourced external-citation seed corpus (bibliographic only) | Yes, conditionally | See §(b). |
 | The operator's live SQLite DB (`data/*.db` or similar) | **No — gitignored from creation** | Accumulates reviews of PRIVATE workspace artifacts + internal-provenance citations pointing at private paths (the exact risk the task names). |
-| Breakdown docs / review output that names a private artifact path | **No — gitignored, or hand-scrub before commit** | A review of `c:/Users/abero/dev/<private-project>/...` embeds the private path and possibly excerpted private content in its "choices extracted" section. |
+| Breakdown docs / review output that names a private artifact path | **No — gitignored, or hand-scrub before commit** | A review of `c:/Users/x/dev/<private-project>/...` embeds the private path and possibly excerpted private content in its "choices extracted" section. |
 | Any per-review JSON/markdown export written by a review run | **No, by default** | Same reasoning — a review's output is workspace-specific unless explicitly hand-scrubbed for a public example. |
 
 ### Design pattern: mirror `x-marks-the-spot`'s rebuildable-derived-data split
 
-`c:/Users/abero/dev/x-marks-the-spot/.gitignore`:
+`c:/Users/x/dev/x-marks-the-spot/.gitignore`:
 ```
 # Derived artifacts — the DB and site are always rebuildable from seeds/
 data/
@@ -63,7 +63,7 @@ versioned inputs) feeds a gitignored `data/` (the live SQLite DB + generated sit
   vetted citations pointing at private internal paths, etc. Rebuildable: schema + seed corpus
   re-applied gives a fresh, empty-of-private-history DB.
 
-Also note the already-established sibling precedent: `c:/Users/abero/dev/claude-skills/.gitignore`
+Also note the already-established sibling precedent: `c:/Users/x/dev/claude-skills/.gitignore`
 line 7 already has `*.db` as a gitignore pattern (that mirror repo doesn't currently ship a DB, but
 the pattern is pre-declared) — one more workspace data point that `*.db` under a public repo is
 the established gitignore convention, not a new invention for this project.
@@ -72,7 +72,7 @@ the established gitignore convention, not a new invention for this project.
 
 Two workspace memories directly govern this:
 
-- `C:/Users/abero/.claude/projects/c--Users-abero-dev/memory/feedback_github_history_rewrite_insufficient.md`
+- `C:/Users/x/.claude/projects/c--Users-x-dev/memory/feedback_github_history_rewrite_insufficient.md`
   — verified on toybox 2026-06-30: a `git filter-repo` history rewrite + force-push is
   **necessary but not sufficient** to scrub sensitive data before a public flip. Two concrete
   leak paths survive a rewrite: (1) pre-rewrite commits stay reachable by full/short SHA via
@@ -84,7 +84,7 @@ Two workspace memories directly govern this:
   **Applied to citation-needed:** don't rely on "we'll scrub the DB before open-sourcing later" —
   design the repo so the DB and private-path-bearing docs are gitignored **from the first commit**,
   so there is never a pre-scrub tree to leak.
-- `C:/Users/abero/.claude/projects/c--Users-abero-dev/memory/project_claude_skills_public_mirror.md`
+- `C:/Users/x/.claude/projects/c--Users-x-dev/memory/project_claude_skills_public_mirror.md`
   — the workspace's live precedent for a hand-scrubbed public subset (`claude-skills/`, remote
   `github.com/aberson/claude-skills`). Two applicable conventions: (1) it **strips every `evals/`
   dir** specifically because eval fixtures tend to carry workspace-specific scenarios/absolute
@@ -202,17 +202,17 @@ already-known `claude-skills` public mirror:
 
 | Repo | LICENSE file? | `gh repo view --json licenseInfo` | Visibility |
 |---|---|---|---|
-| `c:/Users/abero/dev/measure-twice` | No | `licenseInfo: null` | PUBLIC |
-| `c:/Users/abero/dev/x-marks-the-spot` | No | `licenseInfo: null` | PUBLIC |
-| `c:/Users/abero/dev/aberson.github.io` | No | `licenseInfo: null` | PUBLIC |
-| `c:/Users/abero/dev/claude-skills` | **Yes** — `claude-skills/LICENSE` | `{"key":"mit","name":"MIT License"}` | PUBLIC |
+| `c:/Users/x/dev/measure-twice` | No | `licenseInfo: null` | PUBLIC |
+| `c:/Users/x/dev/x-marks-the-spot` | No | `licenseInfo: null` | PUBLIC |
+| `c:/Users/x/dev/aberson.github.io` | No | `licenseInfo: null` | PUBLIC |
+| `c:/Users/x/dev/claude-skills` | **Yes** — `claude-skills/LICENSE` | `{"key":"mit","name":"MIT License"}` | PUBLIC |
 
 (Root-level check only — a naive recursive glob for `LICENSE*` in each of the three no-license
 repos surfaces only vendored third-party `LICENSE` files under `.venv/`/`node_modules/`, which are
 those dependencies' own licenses, not the project's own; confirmed via direct `ls` at repo root
 that no project-level LICENSE exists in any of the three.)
 
-`c:/Users/abero/dev/claude-skills/LICENSE` (read in full):
+`c:/Users/x/dev/claude-skills/LICENSE` (read in full):
 ```
 MIT License
 
@@ -249,7 +249,7 @@ actual license decision on record in this workspace is `claude-skills`'s MIT cho
 
 **Yes — explicitly confirmed by direct inspection, not just by design intent.**
 
-Read `c:/Users/abero/dev/.claude/skills/plan-wrap/evals/golden/bad_completion_gate.md` in full as
+Read `c:/Users/x/dev/.claude/skills/plan-wrap/evals/golden/bad_completion_gate.md` in full as
 a concrete example of the fixture shape this task describes (a synthetic "bad" calibration
 document used to gate an eval/judge). Its content is:
 
@@ -259,7 +259,7 @@ document used to gate an eval/judge). Its content is:
 - No absolute paths, no real project names, no private content of any kind.
 - Structurally, it's exactly the shape `measurement-validity.md`'s "calibrate with anchors before
   comparing candidates" rule calls for
-  (`c:/Users/abero/dev/.claude/rules/measurement-validity.md`, § Calibrate with anchors before
+  (`c:/Users/x/dev/.claude/rules/measurement-validity.md`, § Calibrate with anchors before
   comparing candidates): *"feed it a frozen known-good and a known-garbage input and assert
   `score(good) > score(garbage)`."* citation-needed's garbage-anchor fixture (a synthetic bad rule
   file with obviously-unsupported or contradicted "choices") is the citation-needed-specific
@@ -285,16 +285,16 @@ accumulates real-workspace-derived golden fixtures (which would need the same ca
 ## Sources
 
 **Workspace (read this run):**
-- `C:/Users/abero/.claude/projects/c--Users-abero-dev/memory/feedback_github_history_rewrite_insufficient.md`
-- `C:/Users/abero/.claude/projects/c--Users-abero-dev/memory/project_claude_skills_public_mirror.md`
-- `c:/Users/abero/dev/claude-skills/LICENSE`
-- `c:/Users/abero/dev/claude-skills/.gitignore`
-- `c:/Users/abero/dev/x-marks-the-spot/.gitignore`
-- `c:/Users/abero/dev/measure-twice/.gitignore`
-- `c:/Users/abero/dev/measure-twice/`, `x-marks-the-spot/`, `aberson.github.io/` root listings (no LICENSE present)
-- `c:/Users/abero/dev/docs/skill-plans/claude-skills-publish-plan.md:16,49`
-- `c:/Users/abero/dev/.claude/skills/plan-wrap/evals/golden/bad_completion_gate.md`
-- `c:/Users/abero/dev/.claude/rules/measurement-validity.md` (§ Calibrate with anchors before comparing candidates)
+- `C:/Users/x/.claude/projects/c--Users-x-dev/memory/feedback_github_history_rewrite_insufficient.md`
+- `C:/Users/x/.claude/projects/c--Users-x-dev/memory/project_claude_skills_public_mirror.md`
+- `c:/Users/x/dev/claude-skills/LICENSE`
+- `c:/Users/x/dev/claude-skills/.gitignore`
+- `c:/Users/x/dev/x-marks-the-spot/.gitignore`
+- `c:/Users/x/dev/measure-twice/.gitignore`
+- `c:/Users/x/dev/measure-twice/`, `x-marks-the-spot/`, `aberson.github.io/` root listings (no LICENSE present)
+- `c:/Users/x/dev/docs/skill-plans/claude-skills-publish-plan.md:16,49`
+- `c:/Users/x/dev/.claude/skills/plan-wrap/evals/golden/bad_completion_gate.md`
+- `c:/Users/x/dev/.claude/rules/measurement-validity.md` (§ Calibrate with anchors before comparing candidates)
 - `gh repo view aberson/{measure-twice,x-marks-the-spot,aberson.github.io,claude-skills} --json licenseInfo,visibility` (live GitHub API check, this run)
 
 **External (fetched this run):**

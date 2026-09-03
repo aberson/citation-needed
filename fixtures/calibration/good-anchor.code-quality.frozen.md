@@ -1,5 +1,5 @@
 <!-- FROZEN CALIBRATION SNAPSHOT -- do not edit; this is NOT the live rule file.
-     Source: c:/Users/abero/dev/.claude/rules/code-quality.md (the real workspace rule)
+     Source: c:/Users/x/dev/.claude/rules/code-quality.md (the real workspace rule)
      Frozen: 2026-07-21 (citation-needed plan.md Step 5)
      Why frozen: calibration anchors must never drift with the live file -- the gate
      scores a KNOWN input, so a silent drift would invalidate every cached calibration.

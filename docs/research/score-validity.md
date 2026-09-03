@@ -7,7 +7,7 @@ external citation below was opened/verified this session (URL fetched, content c
 
 ## 0. Governing rule (read first)
 
-Design target: `c:/Users/abero/dev/.claude/rules/measurement-validity.md`. The load-bearing clause
+Design target: `c:/Users/x/dev/.claude/rules/measurement-validity.md`. The load-bearing clause
 is **"Calibrate with anchors before comparing candidates"**
 (`.claude/rules/measurement-validity.md:23-27`):
 
@@ -45,7 +45,7 @@ expectation) — the instrument is spec'd enough to build, per the rule's own re
 
 ## 1. Candidate survey for the good anchor
 
-Surveyed every file in `c:/Users/abero/dev/.claude/rules/` (13 files) for the richest **documented
+Surveyed every file in `c:/Users/x/dev/.claude/rules/` (13 files) for the richest **documented
 regression provenance** — a real incident, with a cost, not just a stated convention:
 
 | Rule file | Incidents w/ quantified cost | Verdict |
@@ -56,7 +56,7 @@ regression provenance** — a real incident, with a cost, not just a stated conv
 | `worktree-hygiene.md` | 0 named incidents (stub referencing a fuller reference doc) | Directive-only, no provenance to score |
 | `plan-and-issue-flow.md`, `descriptor-contract.md`, `knowledge-placement.md`, `working-directory.md`, `shareable-docs.md`, `subagent-economy.md`, `windows-shell.md`, `command-presentation.md`, `python.md` | Mostly conventions/rationale, 0-1 loosely-dated incidents each | Not incident-dense enough |
 
-**Good anchor: `c:/Users/abero/dev/.claude/rules/code-quality.md`.** It is a real, currently-loaded
+**Good anchor: `c:/Users/x/dev/.claude/rules/code-quality.md`.** It is a real, currently-loaded
 workspace rule (not authored for this exercise), already checked into the repo, with five
 extractable choices each carrying an explicit internal-provenance citation (its own
 `## Source memories` block, lines 72-77) — exactly the "internal workspace provenance, secondary"

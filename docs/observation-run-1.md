@@ -77,7 +77,7 @@ this observation does not authorize editing the reviewed rules in this step. The
 ## Commands exercised
 
 ```powershell
-uv run --project citation-needed cite scan --project coding-root --workspace-root C:\Users\abero\dev
+uv run --project citation-needed cite scan --project coding-root --workspace-root C:\Users\x\dev
 uv run cite calibrate check --model "claude-code-2.1.212"
 uv run cite corpus-search <one bounded query per rule>
 uv run cite review open <workspace-relative-rule-path>

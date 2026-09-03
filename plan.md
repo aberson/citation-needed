@@ -81,7 +81,7 @@ Proposal: https://claude.ai/code/artifact/f9359e17-fbc7-487a-8dc2-1840fc7844c1
     (JSON1, pydantic-validated at write time, promotable to generated columns if hot). `path`
     UNIQUE, forward slashes: **workspace-relative** for in-tree artifacts;
     **`memory:<project-dir-slug>/<file>.md`** for memory artifacts (they live outside the
-    workspace under `C:/Users/abero/.claude/projects/<slug>/memory/` and cannot be
+    workspace under `C:/Users/x/.claude/projects/<slug>/memory/` and cannot be
     workspace-relative). `project` resolved against `dev/.claude/observatory/registry.toml`
     (else `coding-root` / `global`).
   - **`choices`** — durable identity = `UNIQUE(artifact_id, choice_key)` where `choice_key` is an
@@ -440,7 +440,7 @@ Steps touching both repos (Step 8) apply the wrong-directory guard once per repo
 - **Status:** DONE (2026-07-21)
 
 ### Step 2: Artifact discovery + typed ingestion (`cite scan`)
-- **Problem:** Discover and type LLM-facing artifacts: globs for the 5 v1 types (incl. memory dirs under `C:/Users/abero/.claude/projects/*/memory/`, and `.claude/commands/*.md` ingested as `skill`), exclusions (`.venv/`, `node_modules/`, `.git/`, `docs/archived*`, `owned=false` trees via `registry.toml`), pointer detection + resolution (thin-wrapper SKILL.md, pointer plan.md, CLAUDE.md `@path` imports — mechanics in `docs/research/artifact-type-extensions.md`), frontmatter parsing, `project` resolution, `details_json` population, artifact upsert.
+- **Problem:** Discover and type LLM-facing artifacts: globs for the 5 v1 types (incl. memory dirs under `C:/Users/x/.claude/projects/*/memory/`, and `.claude/commands/*.md` ingested as `skill`), exclusions (`.venv/`, `node_modules/`, `.git/`, `docs/archived*`, `owned=false` trees via `registry.toml`), pointer detection + resolution (thin-wrapper SKILL.md, pointer plan.md, CLAUDE.md `@path` imports — mechanics in `docs/research/artifact-type-extensions.md`), frontmatter parsing, `project` resolution, `details_json` population, artifact upsert.
 - **Type:** code
 - **Issue:** #2
 - **Flags:** --reviewers code

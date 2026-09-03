@@ -41,10 +41,10 @@ plans, and requires the subtype-vs-JSON choice be argued, not defaulted.
 
 - **memory** — real YAML frontmatter: `name`, `description`, `metadata: {node_type, type
   (feedback|user|project), originSessionId, modified}`. Verified against two live memory files:
-  `C:/Users/abero/.claude/projects/c--Users-abero-dev/memory/feedback_win_capture_when_worth_it.md:1-7`
+  `C:/Users/x/.claude/projects/c--Users-x-dev/memory/feedback_win_capture_when_worth_it.md:1-7`
   and `.../memory/user_model_preference.md:1-6`. Also carries a **scope** axis not in the
-  frontmatter itself: global (`.../c--Users-abero-dev/memory/`) vs per-project
-  (`.../c--Users-abero-dev-Alpha4Gate/memory/`, `.../c--Users-abero-dev-toybox/memory/`) — derived
+  frontmatter itself: global (`.../c--Users-x-dev/memory/`) vs per-project
+  (`.../c--Users-x-dev-Alpha4Gate/memory/`, `.../c--Users-x-dev-toybox/memory/`) — derived
   from the directory name, not a file field.
 - **skill** — real frontmatter, different shape: `name`, `description`, `user-invocable`. Verified
   against `.claude/skills/session-wrap/SKILL.md:1-4`.
@@ -128,7 +128,7 @@ Populated from path against the dev-observatory registry (`.claude/observatory/r
 per `descriptor-contract.md` §2) where the path falls under a registered project; `'coding-root'`
 for workspace-root-owned files (root rules/skills/CLAUDE.md, per `working-directory.md`'s
 coding-root-vs-project vocabulary); for memory files, the project directory's suffix
-(`c--Users-abero-dev-Alpha4Gate` → `Alpha4Gate`) or `'global'` for the root memory dir.
+(`c--Users-x-dev-Alpha4Gate` → `Alpha4Gate`) or `'global'` for the root memory dir.
 
 ---
 
@@ -643,5 +643,5 @@ VALUES
 - `x-marks-the-spot/src/xmarks/schema.sql:1-10, :231-239, :261-265` — the workspace's own thin uv+SQLite-no-ORM precedent: header conventions, `top_factors_json` (JSON-for-variable-payload precedent, §1), `score_snapshots.band`/`logodds_raw` split (ordinal-band-over-raw-decimal precedent, §7.1), `facts_verified` view (schema-enforced quarantine precedent, §2).
 - `x-marks-the-spot/CLAUDE.md:12, :15, :51` — "no ORM," "DB derived from git-tracked seed YAML" (the rebuild-cheap property citation-needed's corpus lacks, §6), "Scores display as 5-level ordinal bands, never decimals."
 - `agora/ledger/db.py:8-22` — `CREATE TABLE IF NOT EXISTS` idempotent-init convention, reused in §7.
-- Live memory files (frontmatter shape verified directly, informing the `memory` artifact type in §1): `C:/Users/abero/.claude/projects/c--Users-abero-dev/memory/feedback_win_capture_when_worth_it.md:1-7`, `.../memory/user_model_preference.md:1-6`.
+- Live memory files (frontmatter shape verified directly, informing the `memory` artifact type in §1): `C:/Users/x/.claude/projects/c--Users-x-dev/memory/feedback_win_capture_when_worth_it.md:1-7`, `.../memory/user_model_preference.md:1-6`.
 - `.claude/skills/session-wrap/SKILL.md:1-4` — SKILL.md frontmatter shape verified directly, informing the `skill` artifact type in §1.

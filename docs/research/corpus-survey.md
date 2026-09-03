@@ -1,12 +1,12 @@
 # Corpus survey — LLM-facing artifact classes in `dev/`
 
-Scope: `c:/Users/abero/dev` (multi-project workspace, Windows 11) plus the per-project memory
-trees under `C:/Users/abero/.claude/projects/*/memory/`. Method: `Glob`/`find`/`grep` counts and
+Scope: `c:/Users/x/dev` (multi-project workspace, Windows 11) plus the per-project memory
+trees under `C:/Users/x/.claude/projects/*/memory/`. Method: `Glob`/`find`/`grep` counts and
 structural sampling (no full-corpus read) via the Bash tool, October... (run date 2026-07-21).
 Counts are approximate (shell-glob based) and exclude vendored/build noise (`node_modules/`,
 `.venv/`) except where called out as its own finding.
 
-All workspace-file citations below are `path:line` relative to `c:/Users/abero/dev` unless a
+All workspace-file citations below are `path:line` relative to `c:/Users/x/dev` unless a
 different root is given. One external source was fetched and verified this run (§8).
 
 ---
@@ -192,7 +192,7 @@ right.
 ## 4. CLAUDE.md chain
 
 ### Count
-- Root: `c:/Users/abero/dev/CLAUDE.md` — **130 lines**.
+- Root: `c:/Users/x/dev/CLAUDE.md` — **130 lines**.
 - Per-project (project-root `CLAUDE.md`, one level under `dev/`, excluding `.venv`/`node_modules`):
   **29** files.
 - Workspace-wide including nested (e.g. `shake_spear/projects/example_kids_story/CLAUDE.md`):
@@ -283,7 +283,7 @@ linked phase docs rather than reporting "plan has 0 extractable choices."
 
 ---
 
-## 6. Memory files — `C:/Users/abero/.claude/projects/*/memory/`
+## 6. Memory files — `C:/Users/x/.claude/projects/*/memory/`
 
 ### Count
 **13** per-project memory directories exist. Fact-file counts (`*.md` excluding `MEMORY.md`
@@ -291,19 +291,19 @@ itself):
 
 | Project memory dir | Fact files |
 |---|---|
-| `c--Users-abero-dev` (main/root) | 183 |
-| `c--Users-abero-dev-Alpha4Gate` | 120 |
-| `c--Users-abero-dev-void-furnace` | 61 |
-| `c--Users-abero-dev-toybox` | 45 |
-| `c--Users-abero-dev-pta-finance` | 16 |
-| `c--Users-abero-dev-brickomancer` | 10 |
-| `c--Users-abero-dev-always-best-estimates` | 6 |
-| `c--Users-abero-dev-career-ops` | 6 |
-| `c--Users-abero-dev-workspace` | 4 |
-| `c--Users-abero-OneDrive-Desktop-coding-root` | 4 |
-| `c--Users-abero-dev-songs` | 2 |
-| `c--Users-abero-dev-walkies` | 2 |
-| `C--Users-abero-dev-on-brand` | 0 (dir exists, empty) |
+| `c--Users-x-dev` (main/root) | 183 |
+| `c--Users-x-dev-Alpha4Gate` | 120 |
+| `c--Users-x-dev-void-furnace` | 61 |
+| `c--Users-x-dev-toybox` | 45 |
+| `c--Users-x-dev-pta-finance` | 16 |
+| `c--Users-x-dev-brickomancer` | 10 |
+| `c--Users-x-dev-always-best-estimates` | 6 |
+| `c--Users-x-dev-career-ops` | 6 |
+| `c--Users-x-dev-workspace` | 4 |
+| `c--Users-x-OneDrive-Desktop-coding-root` | 4 |
+| `c--Users-x-dev-songs` | 2 |
+| `c--Users-x-dev-walkies` | 2 |
+| `C--Users-x-dev-on-brand` | 0 (dir exists, empty) |
 
 **Total ≈ 459** per-fact memory files workspace-wide, plus one `MEMORY.md` index per directory
 (13 indexes).
@@ -345,7 +345,7 @@ A `[[wikilink]]`-style cross-reference convention links memory files to each oth
 `feedback_win_capture_when_worth_it.md:54`: "Links: [[feedback_memory_cleanup_default_delete]]
 ... and the measurement-validity rule"). `MEMORY.md` itself is a **pure index** — one bullet per
 fact file, grouped under `## <category>` headings, each bullet a `[title](filename.md)` link plus
-a terse one-line hook (`C:/Users/abero/.claude/projects/c--Users-abero-dev/memory/MEMORY.md:5-15`).
+a terse one-line hook (`C:/Users/x/.claude/projects/c--Users-x-dev/memory/MEMORY.md:5-15`).
 
 A runtime behavior observed directly in this session: reading an aged memory file
 (`reference_buildphase_subagent_tightening.md`, ~29 days old) auto-prepended a
@@ -470,7 +470,7 @@ choice-extraction unit and frontmatter shape (not a single generic "document" ty
 | `claude_md` | `CLAUDE.md` (root / project-root / scoped-child) | none | one `##` section | 34 (3 structural sub-shapes: root, project-root, scoped-child) |
 | `plan_inline` | `plan.md`/`master_plan.md`/`documentation/*-plan.md` with inline steps | none | one `### Step N:` or `## Phase` block | 32 Step-shaped + 9 Phase-shaped (of 98 scanned) |
 | `plan_pointer` | short `plan.md` that only links to phase files | none | resolve to linked files, extract there | present (e.g. void_furnace, 9-line file) |
-| `memory_fact` | `C:/Users/abero/.claude/projects/*/memory/*.md` (excl. `MEMORY.md`) | **nested** `metadata:{node_type,type,originSessionId,modified}` | usually the **whole file** is one choice | ~459 |
+| `memory_fact` | `C:/Users/x/.claude/projects/*/memory/*.md` (excl. `MEMORY.md`) | **nested** `metadata:{node_type,type,originSessionId,modified}` | usually the **whole file** is one choice | ~459 |
 | `memory_index` | `MEMORY.md` | none | not a choice source itself — a routing index into `memory_fact` rows | 13 |
 | `workflow_js` | `.claude/workflows/*.js` | JS `meta = {...}` object | the `meta` block + tier-pin comments | 2 |
 | `hook_prompt` | `.claude/hooks/*.ps1` wired in `settings.json` | none (PS comments document the injection contract) | the literal injected-text template | 4 |

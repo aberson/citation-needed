@@ -181,7 +181,7 @@ GOLDEN_DETAILS: dict[str, dict[str, object]] = {
     },
     "rule": {
         "source_memory_paths": [
-            "memory:c--Users-abero-dev/feedback_external_content_prompt_injection.md"
+            "memory:c--Users-x-dev/feedback_external_content_prompt_injection.md"
         ],
     },
     "claude_md": {

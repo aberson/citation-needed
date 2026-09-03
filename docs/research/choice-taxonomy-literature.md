@@ -13,7 +13,7 @@ ran live web searches per category and fetch-verified the load-bearing sample ci
 authors, venue/year confirmed via `WebFetch` against the abstract page, not just the search
 snippet). Categories are ordered highest-to-lowest literature density per the closing assessment.
 
-Workspace artifacts sampled (all paths relative to `c:/Users/abero/dev` unless a full path is
+Workspace artifacts sampled (all paths relative to `c:/Users/x/dev` unless a full path is
 given):
 - `CLAUDE.md` (root)
 - `.claude/rules/code-quality.md`
@@ -26,8 +26,8 @@ given):
 - `.claude/skills/judge-motion/SKILL.md`
 - `.claude/skills/_shared/judge-core.md`
 - `.claude/references/task-state-schema.md`
-- `C:/Users/abero/.claude/projects/c--Users-abero-dev/memory/feedback_win_capture_when_worth_it.md`
-- `C:/Users/abero/.claude/projects/c--Users-abero-dev/memory/reference_buildphase_subagent_tightening.md`
+- `C:/Users/x/.claude/projects/c--Users-x-dev/memory/feedback_win_capture_when_worth_it.md`
+- `C:/Users/x/.claude/projects/c--Users-x-dev/memory/reference_buildphase_subagent_tightening.md`
 
 ---
 
@@ -83,7 +83,7 @@ get seen and used," distinct from category 11's human-technical-writing angle.
 - `.claude/rules/subagent-economy.md:5-15` — "Subagent returns are a terse verdict; detail goes to
   a file" — the return value competes for the same scarce context-window attention the tier tree
   protects.
-- `C:/Users/abero/.claude/projects/c--Users-abero-dev/memory/feedback_win_capture_when_worth_it.md:36-39`
+- `C:/Users/x/.claude/projects/c--Users-x-dev/memory/feedback_win_capture_when_worth_it.md:36-39`
   — cites Power-of-Noise / Lost-in-the-Middle / Context Rot directly as the reason MEMORY.md's
   wholesale-loaded index is a poor fit for liberal win-capture — this memory file is itself
   already partially citation-bearing, a useful internal-provenance exemplar for citation-needed.
@@ -116,7 +116,7 @@ the tiering of which model runs which arm, and the claim that *independence* (no
 what buys signal.
 
 **Workspace examples.**
-- `C:/Users/abero/.claude/projects/c--Users-abero-dev/memory/reference_buildphase_subagent_tightening.md:14-19`
+- `C:/Users/x/.claude/projects/c--Users-x-dev/memory/reference_buildphase_subagent_tightening.md:14-19`
   — "reviewer COUNT is load-bearing (independence = context isolation...); the slack is in
   FEEDING... SCHEDULING... and MODEL-TIERING." Explicit claim: 1 developer + 4/3/7 parallel
   reviewers depending on mode, and "NOT building: any lens merge or count cut (breaks
@@ -213,7 +213,7 @@ what surfaces into a fresh session.
   (`Task`, `Status`, `Session SHA`, `Last written`), explicit per-field **overwrite vs append-only**
   discipline (a retrieval/staleness design choice), and the derived-rollup architecture
   (`sessions/<id>.md` as source of truth, `current.md` as a pure function of it).
-- MEMORY.md itself (`C:/Users/abero/.claude/projects/c--Users-abero-dev/memory/MEMORY.md`) — an
+- MEMORY.md itself (`C:/Users/x/.claude/projects/c--Users-x-dev/memory/MEMORY.md`) — an
   always-loaded **index** of one-line pointers to recall-gated **body** files — the workspace's own
   two-tier retrieval design (index cheap and wholesale; body expensive and on-demand).
 - `.claude/rules/knowledge-placement.md:20-` (§ "Capturing a win vs a regression") — a five-gate

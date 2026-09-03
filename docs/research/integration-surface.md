@@ -30,24 +30,24 @@ fact about a file, it is anchored `path:line`.
 
 ## (a) Skill invocation from other projects — the junction
 
-### What's actually there (verified this run)
+### What's actually there (verified this run; the transcript below is verbatim except the home-directory segment, redacted to the placeholder `x` per src/citation_needed/discover.py:199 -- issue #21)
 
 ```
-PS> Get-ChildItem -Path "C:\Users\abero\.claude" -Force | Select Name, Attributes, LinkType, Target
-skills          Directory, ReparsePoint  Junction  {C:\Users\abero\dev\.claude\skills}
-skills$skill    Directory, ReparsePoint  Junction  {C:\Users\abero\dev\.claude\skills$skill}
+PS> Get-ChildItem -Path "C:\Users\x\.claude" -Force | Select Name, Attributes, LinkType, Target
+skills          Directory, ReparsePoint  Junction  {C:\Users\x\dev\.claude\skills}
+skills$skill    Directory, ReparsePoint  Junction  {C:\Users\x\dev\.claude\skills$skill}
 ```
 
-- **The real, live junction:** `C:\Users\abero\.claude\skills` → `C:\Users\abero\dev\.claude\skills`.
+- **The real, live junction:** `C:\Users\x\.claude\skills` → `C:\Users\x\dev\.claude\skills`.
   This is what `CLAUDE.md:16` means by *"Global skills load via one `mklink /J` junction — not
   `additionalDirectories`."* There is exactly **one physical copy** of every global SKILL.md, sitting
   in the coding-root repo at `dev/.claude/skills/<name>/SKILL.md`; the harness's home-relative
   `~/.claude/skills/` load path resolves to that same tree via the junction, which is why `/build-phase`,
   `/plan-init`, `/user-pm`, etc. are invocable from inside *any* nested project's window (Alpha4Gate,
   switchboard, toybox, …) without each project carrying its own copy.
-- **A second, broken entry:** `C:\Users\abero\.claude\skills$skill` → target
-  `C:\Users\abero\dev\.claude\skills$skill`, and that target directory **does not exist**
-  (`ls "c:/Users/abero/dev/.claude/skills$skill"` → `No such file or directory`). This is a stray/
+- **A second, broken entry:** `C:\Users\x\.claude\skills$skill` → target
+  `C:\Users\x\dev\.claude\skills$skill`, and that target directory **does not exist**
+  (`ls "c:/Users/x/dev/.claude/skills$skill"` → `No such file or directory`). This is a stray/
   dead junction from some past mis-typed `mklink` invocation (a `$` literal in a Windows path, most
   likely produced by an unescaped PowerShell variable expansion gone wrong). It is inert — nothing
   resolves through it — but it is a landmine if anyone later tries to debug "why isn't my skill
@@ -100,14 +100,14 @@ is already inside `dev/citation-needed/`, defeating the "invocable everywhere" r
 
 ## (b) Skill naming — group-task convention + collision check
 
-Convention source: `C:\Users\abero\.claude\projects\c--Users-abero-dev\memory\feedback_skill_naming_group_task.md:3,9,11` —
+Convention source: `C:\Users\x\.claude\projects\c--Users-x-dev\memory\feedback_skill_naming_group_task.md:3,9,11` —
 *"New skills and slash commands should be named `<group>-<task>`... The user thinks 'the {group}
 needs to {task}' when invoking... Match the existing pattern (build-step, plan-init, repo-sync,
 session-wrap, user-orient, etc.) — do not introduce a new naming style."*
 
 ### Collision check
 
-`Glob ".claude/skills/*" (path: c:/Users/abero/dev)` plus `ls -d */` inside `dev/.claude/skills/`
+`Glob ".claude/skills/*" (path: c:/Users/x/dev)` plus `ls -d */` inside `dev/.claude/skills/`
 enumerated all 50 current skill directories (`_shared`, `build-phase`, `build-queue`, `build-step`,
 `claude-oauth-auth`, `context-slim`, `goblin-do`, `goblin-suggest`, `judge-motion`, `judge-ui`,
 `lesson-harvest`, `memory-distill`, `observatory-doctor`, `plan-expedite`, `plan-feature`,
@@ -221,27 +221,27 @@ CI to read it) — treat that as a deliberate, documented exception, not the def
 
 ## Sources
 
-- Filesystem/junction facts: `Get-ChildItem -Path "C:\Users\abero\.claude" -Force` and
-  `Get-Item 'C:\Users\abero\.claude\skills$skill'` (this run); `ls` verification that
-  `C:/Users/abero/dev/.claude/skills$skill` does not exist (this run).
-- `c:/Users/abero/dev/CLAUDE.md:16,17,34`
-- `c:/Users/abero/dev/.claude/rules/descriptor-contract.md` (full file read this run; §1 lines 9-23,
+- Filesystem/junction facts: `Get-ChildItem -Path "C:\Users\x\.claude" -Force` and
+  `Get-Item 'C:\Users\x\.claude\skills$skill'` (this run); `ls` verification that
+  `C:/Users/x/dev/.claude/skills$skill` does not exist (this run).
+- `c:/Users/x/dev/CLAUDE.md:16,17,34`
+- `c:/Users/x/dev/.claude/rules/descriptor-contract.md` (full file read this run; §1 lines 9-23,
   §2 lines 25-39, §3 lines 41-46, §4 lines 48-66, §5 lines 68-77)
-- `c:/Users/abero/dev/.claude/rules/working-directory.md` (full file read this run; layers table
+- `c:/Users/x/dev/.claude/rules/working-directory.md` (full file read this run; layers table
   lines 9-14, third-case note lines 20-24, anchoring rule lines 26-37, tradeoffs lines 39-48, guard
   lines 60-88)
-- `c:/Users/abero/dev/.claude/skills/observatory-doctor/SKILL.md:3,14-19,41` (live thin-wrapper
+- `c:/Users/x/dev/.claude/skills/observatory-doctor/SKILL.md:3,14-19,41` (live thin-wrapper
   precedent)
-- `c:/Users/abero/dev/dev-observatory/CLAUDE.md:16-24,30-38` (live scrapable `## Stack` /
+- `c:/Users/x/dev/dev-observatory/CLAUDE.md:16-24,30-38` (live scrapable `## Stack` /
   `## Key commands` precedent)
-- `c:/Users/abero/dev/.claude/observatory/registry.toml` (full file read this run — confirms no
+- `c:/Users/x/dev/.claude/observatory/registry.toml` (full file read this run — confirms no
   `citation-needed` entry yet; confirms `owned = false` entries exist for `TripoSR`, `tinstar`,
   `career-ops`, `agora`)
-- `C:\Users\abero\.claude\projects\c--Users-abero-dev\memory\feedback_skill_naming_group_task.md`
+- `C:\Users\x\.claude\projects\c--Users-x-dev\memory\feedback_skill_naming_group_task.md`
   (full file read this run)
-- `c:/Users/abero/dev/docs/investigations/skill-deep-dives/skill-xref/12-junction-vs-directory-resolution.md:9-11,25`
+- `c:/Users/x/dev/docs/investigations/skill-deep-dives/skill-xref/12-junction-vs-directory-resolution.md:9-11,25`
   (corroborating prior investigation of the same junction mechanism)
-- `Glob ".claude/skills/*" (c:/Users/abero/dev)` and `ls -d */` inside `dev/.claude/skills/` (this
+- `Glob ".claude/skills/*" (c:/Users/x/dev)` and `ls -d */` inside `dev/.claude/skills/` (this
   run — full 50-name enumeration, no `citation-*` collision)
 - No external (web) literature was sought or applies — this investigation is entirely about
   verified, internal workspace filesystem/convention facts, not a claim needing external research

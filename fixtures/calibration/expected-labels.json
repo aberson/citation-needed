@@ -3,7 +3,7 @@
   "frozen_at": "2026-07-21",
   "good_anchor": {
     "file": "good-anchor.code-quality.frozen.md",
-    "sha256": "8732235c8e188db540e39e518f4d9158e700f44696cc4a9b80a2888c44361155",
+    "sha256": "f34191d726324e960562034c32476774bb1e92f3b6654d4099324f20914ee292",
     "choices": [
       {
         "choice_key": "grep-downstream-consumers-on-key-shape-change",

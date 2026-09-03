@@ -26,7 +26,7 @@ exists. This is the exact quantity `.claude/rules/subagent-economy.md` and
 > 2. Needed only in a **named situation**? → a `.claude/rules/*.md` ... or a **skill**.
 > 3. **Human / reference** detail (background, worked examples, tables)? → `.claude/references/`
 > or `docs/`, linked on demand."
-> — `c:/Users/abero/dev/.claude/rules/knowledge-placement.md:10-15`
+> — `c:/Users/x/dev/.claude/rules/knowledge-placement.md:10-15`
 
 A citation breakdown is, by definition, **tier 3**: background/provenance a future editor
 consults when they are about to touch or challenge a specific choice — not something needed on
@@ -110,7 +110,7 @@ a per-project artifact without a pointer sprinkled through the codebase" — and
 > project root or under `plans/`/`docs`/`documentation/` ... This is the discoverable path the
 > control plane's observer + tooling read; a plan kept elsewhere/otherwise-named is invisible to
 > them."
-> — `c:/Users/abero/dev/CLAUDE.md:17`
+> — `c:/Users/x/dev/CLAUDE.md:17`
 
 dev-observatory finds every project's plan by checking a small set of conventional locations
 (`descriptor-contract.md` §4), not by grepping for a pointer comment placed inside unrelated

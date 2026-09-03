@@ -46,8 +46,8 @@ EXPECTED_SLUG = "--claude--rules--subagent-economy"
         (".claude/rules/subagent-economy.md", EXPECTED_SLUG),
         # ':' from the memory scheme and case-folding.
         (
-            "memory:c--Users-abero-dev/feedback_win_capture.md",
-            "memory--c--users-abero-dev--feedback_win_capture",
+            "memory:c--Users-x-dev/feedback_win_capture.md",
+            "memory--c--users-x-dev--feedback_win_capture",
         ),
         ("CLAUDE.md", "claude"),
         ("docs/my plan notes.md", "docs--my--plan--notes"),
