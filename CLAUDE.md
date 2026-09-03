@@ -47,7 +47,7 @@ src/citation_needed/     # cli, db, models, discover, corpus, resolve, verify, r
 prompts/                 # versioned LLM prompt templates (hash = calibration fingerprint A)
 fixtures/calibration/    # frozen good anchor + SYNTHETIC garbage anchor
 seed/                    # tracked CC0 seed corpus + PROVENANCE.md
-docs/                    # interpretation-guide.md + research/ (9 Phase-0 investigations)
+docs/                    # interpretation-guide.md + research/ (10 Phase-0 investigations)
 data/                    # GITIGNORED — citation.db (the compounding corpus)
 breakdowns/              # GITIGNORED — <project>/<artifact-slug>.md review output
 tests/
@@ -67,8 +67,21 @@ DB) hard-gates every real review; `cite review open` refuses on stale fingerprin
 
 ## Current state
 
-Plan written (plan.md, 12 sections), no code yet. Phase 0 research complete in
-`docs/research/`. Next: plan-review → plan-redline → plan-wrap → repo-init → build-phase.
+Built and usable. Canonical `plan.md` Steps 1-10 DONE; justification-surfaces
+(`documentation/justification-surfaces-plan.md`) Steps 11-13 done, Step 14 **CODE COMPLETE but
+NOT DONE** (#20 — its tests all run on synthetic/empty fixtures; the exit criterion needs a real
+reviewed `skill` artifact to round-trip, and none exists yet). 389 tests pass / 2 live-API
+deselected; ruff + mypy clean.
+
+**Calibration is INVALID right now** (fingerprint C: corpus grew since the last gate run), so
+`cite review open` refuses by design. Re-arm with `/citation-review <path> --calibrate` before
+any real review.
+
+Next: Step 15 real populated smoke (#24, operator) — it is the only thing that can clear #20.
+Then operator UAT M1 (#11) and M2 (#12). Open defect work: #16 (seed import stamps `verified_at`
+without verifying — port the fix, **never merge** branch `build-step-step7-1784733479` @ `87f11ef`
+wholesale, its seed data has diverged), #15, #14, #13. Public-exposure follow-ups from #21:
+#22 (pushed history), #23 (private project names in `docs/research/`).
 
 ## Environment requirements
 

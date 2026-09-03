@@ -126,7 +126,7 @@ contracts rather than creating a convenience integration between them.
 ### Step 15: Real populated smoke
 - **Problem:** Run calibration, review one real skill, then verify overview and justification output.
 - **Type:** operator
-- **Issue:** #
+- **Issue:** #24
 - **Produces:** operator evidence only
 - **Done when:** recent activity is non-empty and every displayed citation is fetch/API/internal-read verified
 - **Depends on:** 14

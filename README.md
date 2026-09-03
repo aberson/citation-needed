@@ -11,8 +11,18 @@ is a breakdown doc plus database rows, never an edit to the reviewed file — an
 citation persists to SQLite so the corpus compounds across reviews. "No literature found" is a
 recorded, legitimate finding, not a failure.
 
-> **Status:** plan complete ([plan.md](plan.md), 12 sections, grounded in ten investigations
-> under [docs/research/](docs/research/)); implementation in progress via the tracked issues.
+> **Status:** built and usable, not yet finished. Canonical [plan.md](plan.md) Steps 1–10 are
+> DONE; the justification-surfaces feature
+> ([documentation/justification-surfaces-plan.md](documentation/justification-surfaces-plan.md))
+> Steps 11–13 are done and **Step 14 is CODE COMPLETE but NOT DONE** — every test for it runs
+> against synthetic or empty fixtures, and its exit criterion needs a *real* reviewed `skill`
+> artifact to round-trip, which no `/citation-review` run has yet produced (#20). 389 tests pass
+> (2 live-API tests deselected by default); ruff and mypy clean.
+>
+> Two operator UAT steps are outstanding (#11, #12), plus Step 15's real populated smoke (#24).
+> **Calibration is currently INVALID** — the citations corpus has grown since the last gate run,
+> so `cite review open` will refuse until `/citation-review --calibrate` re-arms it. That is the
+> designed behaviour, not a bug.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/pipeline-dark.svg">
