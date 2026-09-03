@@ -14,17 +14,23 @@ A walk would reach the gitignored data/citation.db, which legitimately stores re
 project-dir locators re-derived by every ``cite scan``, and the guard would then
 fail forever on content that was never in git.
 
-Issue #21's stated done-when ("no case-insensitive match for c:\\users\\abero") is
-NOT the criterion used here. Measured against the pre-scrub tree it reached 13 of
-107 occurrences in 3 of 15 files, because it is blind to the forward-slash form (60
-occurrences) and the project-dir slug form (34), which together were 88% of the
-leak. This guard replaces that criterion.
+This file is itself part of the tree it walks and is NOT path-exempted: an exemption
+would go stale on rename, and widening it to ``tests/`` would blind the guard to
+tests/test_breakdown.py and tests/test_schema.py, which genuinely leaked before #21.
+Self-scanning is the point, so the negative fixtures below are assembled at RUNTIME
+from a split token -- no literal home segment appears in this source.
+
+Issue #21's stated done-when was a case-insensitive match on the BACKSLASH spelling
+of the operator's home path. That is NOT the criterion used here: measured against
+the pre-scrub tree it reached 13 of 107 occurrences in 3 of 15 files, because it was
+blind to the forward-slash form (60 occurrences) and the project-dir slug form (34),
+which together were 88% of the leak. This guard replaces that criterion.
 
 DECLARED GAPS -- this is not total coverage. Not detected: percent-encoded forms,
-JSON/Python double-escaped forms, drive-letter-less forms, POSIX /home/ forms,
-WSL /mnt/c/ forms, and any hash or base64 derivative. All are currently absent from
-the tree; the guard encodes today's shapes. It also cannot see git history or
-GitHub issue bodies -- both remain open, see issue #21.
+drive-letter-less forms, POSIX /home/ forms, WSL /mnt/c/ forms, and any hash or
+base64 derivative. All are currently absent from the tree; the guard encodes today's
+shapes. It also cannot see git history or GitHub issue bodies -- both remain open,
+see issue #21.
 """
 
 from __future__ import annotations
@@ -61,6 +67,15 @@ def _tracked_files() -> list[str]:
     return [p for p in proc.stdout.decode("utf-8").split("\0") if p]
 
 
+def _violations_in(text: str, rel: str) -> list[str]:
+    found: list[str] = []
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        for match in (*PATH_RE.finditer(line), *SLUG_RE.finditer(line)):
+            if match.group(1).lower() not in ALLOWED_HOME_TOKENS:
+                found.append(f"{rel}:{lineno}: {match.group(0)!r}")
+    return found
+
+
 def test_no_operator_home_identity_in_tracked_tree() -> None:
     """Every home path and project slug in the tracked tree uses the placeholder."""
     violations: list[str] = []
@@ -71,11 +86,7 @@ def test_no_operator_home_identity_in_tracked_tree() -> None:
             continue
         if b"\0" in raw:  # binary
             continue
-        text = raw.decode("utf-8", errors="ignore")
-        for lineno, line in enumerate(text.splitlines(), start=1):
-            for match in (*PATH_RE.finditer(line), *SLUG_RE.finditer(line)):
-                if match.group(1).lower() not in ALLOWED_HOME_TOKENS:
-                    violations.append(f"{rel}:{lineno}: {match.group(0)!r}")
+        violations.extend(_violations_in(raw.decode("utf-8", errors="ignore"), rel))
     assert not violations, (
         "operator home identity in the tracked tree; replace the home segment with "
         "the placeholder 'x' (see src/citation_needed/discover.py:199):\n" + "\n".join(violations)
@@ -87,17 +98,21 @@ def test_guard_detects_a_planted_violation() -> None:
 
     Without this, a typo that made both regexes match nothing would leave
     ``test_no_operator_home_identity_in_tracked_tree`` permanently, silently green.
+
+    The home token is assembled at runtime; writing these fixtures as literals would
+    make this file violate its own guard (which does not exempt itself).
     """
+    who = "some" + "one"
     planted = [
-        r"C:\Users\someone\dev",
-        "c:/Users/someone/dev",
-        "C:/USERS/someone",
-        "c--Users-someone-dev",
-        "C--Users-someone-dev-Alpha4Gate",
-        "memory--c--users-someone-dev--note",
+        rf"C:\Users\{who}\dev",
+        f"c:/Users/{who}/dev",
+        f"C:/USERS/{who}",
+        f"c--Users-{who}-dev",
+        f"C--Users-{who}-dev-Alpha4Gate",
+        f"memory--c--users-{who}-dev--note",
     ]
     for line in planted:
-        assert PATH_RE.search(line) or SLUG_RE.search(line), line
+        assert _violations_in(line, "planted"), line
 
     allowed = [
         r"C:\Users\x\dev",
@@ -110,5 +125,4 @@ def test_guard_detects_a_planted_violation() -> None:
         "x-marks-the-spot",
     ]
     for line in allowed:
-        for match in (*PATH_RE.finditer(line), *SLUG_RE.finditer(line)):
-            assert match.group(1).lower() in ALLOWED_HOME_TOKENS, (line, match.group(0))
+        assert not _violations_in(line, "allowed"), line
