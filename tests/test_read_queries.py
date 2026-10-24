@@ -26,11 +26,18 @@ def db_path(tmp_path: Path) -> Path:
     return path
 
 
-def _artifact(conn: sqlite3.Connection, path: str, content_hash: str | None) -> int:
+def _artifact(
+    conn: sqlite3.Connection,
+    path: str,
+    content_hash: str | None,
+    *,
+    project: str = "coding-root",
+    is_active: bool = True,
+) -> int:
     cursor = conn.execute(
-        "INSERT INTO artifacts (path, artifact_type, project, current_content_hash, first_seen_at) "
-        "VALUES (?, 'skill', 'coding-root', ?, '2026-08-09T00:00:00Z')",
-        (path, content_hash),
+        "INSERT INTO artifacts (path, artifact_type, project, current_content_hash, first_seen_at, "
+        "is_active) VALUES (?, 'skill', ?, ?, '2026-08-09T00:00:00Z', ?)",
+        (path, project, content_hash, int(is_active)),
     )
     assert cursor.lastrowid is not None
     return int(cursor.lastrowid)
@@ -207,6 +214,144 @@ def test_stale_state_outranks_review_required_when_no_review_is_in_progress(db_p
         conn.close()
 
     assert overview.state == "stale"
+
+
+def test_project_filter_applies_before_count_and_limit_without_scoping_global_fields(
+    db_path: Path,
+) -> None:
+    conn = db.connect(db_path)
+    try:
+        for index in range(51):
+            _artifact(
+                conn,
+                f"aaa/skill-{index:02d}/SKILL.md",
+                "seen-hash",
+                project="earlier-project",
+            )
+        requested_paths = []
+        for index in range(55):
+            path = f"zzz/skill-{index:02d}/SKILL.md"
+            requested_paths.append(path)
+            _artifact(conn, path, "seen-hash", project="requested-project")
+        conn.commit()
+
+        overview = read_queries.query_overview(
+            conn, database_schema_version=2, project="requested-project"
+        )
+    finally:
+        conn.close()
+
+    assert overview.state == "review-required"
+    assert overview.counts is not None and overview.counts.active_artifacts == 106
+    assert overview.recent_activity == []
+    assert overview.open_distill_queue is not None and overview.open_distill_queue.total == 0
+    assert overview.unreviewed_artifacts is not None
+    assert overview.unreviewed_artifacts.total == 55
+    assert [item.path for item in overview.unreviewed_artifacts.items] == requested_paths[:50]
+
+
+def test_exact_path_filter_isolates_each_readiness_state_and_excludes_unknown_or_inactive(
+    db_path: Path,
+) -> None:
+    conn = db.connect(db_path)
+    try:
+        stale_path = "skills/stale/SKILL.md"
+        stale = _artifact(conn, stale_path, "new-hash", project="project-a")
+        _completed_run(conn, stale, "old-hash", finished_at="2026-08-09T01:00:00Z")
+        fresh_path = "skills/fresh/SKILL.md"
+        fresh = _artifact(conn, fresh_path, "same-hash", project="project-a")
+        _completed_run(conn, fresh, "same-hash", finished_at="2026-08-09T02:00:00Z")
+        unavailable_path = "skills/unavailable/SKILL.md"
+        unavailable = _artifact(conn, unavailable_path, None, project="project-a")
+        _completed_run(conn, unavailable, "old-hash", finished_at="2026-08-09T03:00:00Z")
+        inactive_path = "skills/inactive/SKILL.md"
+        _artifact(conn, inactive_path, "seen-hash", project="project-a", is_active=False)
+        conn.commit()
+
+        stale_overview = read_queries.query_overview(
+            conn, database_schema_version=2, project="project-a", path=stale_path
+        )
+        mismatched_overview = read_queries.query_overview(
+            conn, database_schema_version=2, project="project-b", path=stale_path
+        )
+        fresh_overview = read_queries.query_overview(
+            conn, database_schema_version=2, path=fresh_path
+        )
+        unavailable_overview = read_queries.query_overview(
+            conn, database_schema_version=2, path=unavailable_path
+        )
+        inactive_overview = read_queries.query_overview(
+            conn, database_schema_version=2, path=inactive_path
+        )
+        unknown_overview = read_queries.query_overview(
+            conn, database_schema_version=2, path="skills/missing/SKILL.md"
+        )
+    finally:
+        conn.close()
+
+    assert stale_overview.stale_artifacts is not None
+    assert [item.path for item in stale_overview.stale_artifacts.items] == [stale_path]
+    assert mismatched_overview.stale_artifacts is not None
+    assert mismatched_overview.stale_artifacts.total == 0
+    assert unavailable_overview.current_content_unavailable_artifacts is not None
+    unavailable_items = unavailable_overview.current_content_unavailable_artifacts.items
+    assert [item.path for item in unavailable_items] == [unavailable_path]
+    for overview in (fresh_overview, inactive_overview, unknown_overview):
+        assert overview.state == "stale"
+        assert overview.stale_artifacts is not None and overview.stale_artifacts.total == 0
+        assert overview.unreviewed_artifacts is not None
+        assert overview.unreviewed_artifacts.total == 0
+        assert overview.current_content_unavailable_artifacts is not None
+        assert overview.current_content_unavailable_artifacts.total == 0
+
+
+def test_readiness_filters_are_bound_parameters(db_path: Path) -> None:
+    class RecordingConnection:
+        def __init__(self, connection: sqlite3.Connection) -> None:
+            self.connection = connection
+            self.calls: list[tuple[str, tuple[object, ...]]] = []
+
+        def execute(
+            self, sql: str, parameters: tuple[object, ...] | list[object] = ()
+        ) -> sqlite3.Cursor:
+            bound = tuple(parameters)
+            self.calls.append((sql, bound))
+            return self.connection.execute(sql, bound)
+
+    conn = db.connect(db_path)
+    try:
+        recording = RecordingConnection(conn)
+        project = "project-'quoted'"
+        path = "skills/'quoted'/SKILL.md"
+        result = read_queries._artifact_readiness_list(
+            recording,  # type: ignore[arg-type]
+            "unreviewed",
+            project=project,
+            path=path,
+        )
+    finally:
+        conn.close()
+
+    assert result.total == 0
+    assert len(recording.calls) == 2
+    assert project not in recording.calls[0][0] and path not in recording.calls[0][0]
+    assert recording.calls[0][1] == (project, path)
+    assert recording.calls[1][1] == (project, path, read_queries.ARTIFACT_LIST_LIMIT)
+
+
+def test_explicit_unfiltered_scope_matches_legacy_call(db_path: Path) -> None:
+    conn = db.connect(db_path)
+    try:
+        _artifact(conn, "skills/example/SKILL.md", "seen-hash")
+        conn.commit()
+        legacy = read_queries.query_overview(conn, database_schema_version=2)
+        explicit = read_queries.query_overview(
+            conn, database_schema_version=2, project=None, path=None
+        )
+    finally:
+        conn.close()
+
+    assert explicit == legacy
 
 
 # ---------------------------------------------------------------------------

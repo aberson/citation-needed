@@ -43,7 +43,9 @@ class JustificationQueryError(RuntimeError):
     """A requested justification cannot be represented from persisted review evidence."""
 
 
-def overview_for_path(db_path: Path) -> Overview:
+def overview_for_path(
+    db_path: Path, *, project: str | None = None, path: str | None = None
+) -> Overview:
     """Return an honest overview for ``db_path`` without creating or changing it.
 
     A missing database and a file that has not been initialized are both setup states.
@@ -63,27 +65,58 @@ def overview_for_path(db_path: Path) -> Overview:
         if not set(db.CANONICAL_TABLES).issubset(present_tables):
             return _uninitialized_overview()
         database_schema_version = int(conn.execute("PRAGMA user_version").fetchone()[0])
-        return query_overview(conn, database_schema_version=database_schema_version)
+        return query_overview(
+            conn,
+            database_schema_version=database_schema_version,
+            project=project,
+            path=path,
+        )
     finally:
         conn.close()
 
 
-def query_overview(conn: sqlite3.Connection, *, database_schema_version: int) -> Overview:
-    """Read a populated or empty initialized database into the Overview v1 DTO."""
+def query_overview(
+    conn: sqlite3.Connection,
+    *,
+    database_schema_version: int,
+    project: str | None = None,
+    path: str | None = None,
+) -> Overview:
+    """Read a populated or empty initialized database into the Overview v1 DTO.
+
+    ``project`` and ``path`` scope only the three readiness lists. The top-level
+    state, counts, recent activity, and open queue remain workspace-wide.
+    """
     counts = _counts(conn)
     recent_activity = _recent_activity(conn)
-    stale_artifacts = _artifact_readiness_list(conn, "stale")
-    unreviewed_artifacts = _artifact_readiness_list(conn, "unreviewed")
-    content_unavailable_artifacts = _artifact_readiness_list(conn, "current-content-unavailable")
+    global_stale_artifacts = _artifact_readiness_list(conn, "stale")
+    global_unreviewed_artifacts = _artifact_readiness_list(conn, "unreviewed")
+    global_content_unavailable_artifacts = _artifact_readiness_list(
+        conn, "current-content-unavailable"
+    )
+    if project is None and path is None:
+        stale_artifacts = global_stale_artifacts
+        unreviewed_artifacts = global_unreviewed_artifacts
+        content_unavailable_artifacts = global_content_unavailable_artifacts
+    else:
+        stale_artifacts = _artifact_readiness_list(
+            conn, "stale", project=project, path=path
+        )
+        unreviewed_artifacts = _artifact_readiness_list(
+            conn, "unreviewed", project=project, path=path
+        )
+        content_unavailable_artifacts = _artifact_readiness_list(
+            conn, "current-content-unavailable", project=project, path=path
+        )
     open_distill_queue = _open_distill_queue(conn)
 
     if counts.reviews_in_progress:
         state = "review-in-progress"
     elif counts.active_artifacts == 0:
         state = "initialized-empty"
-    elif stale_artifacts.total:
+    elif global_stale_artifacts.total:
         state = "stale"
-    elif unreviewed_artifacts.total or content_unavailable_artifacts.total:
+    elif global_unreviewed_artifacts.total or global_content_unavailable_artifacts.total:
         state = "review-required"
     else:
         state = "ready"
@@ -175,7 +208,13 @@ def _recent_activity(conn: sqlite3.Connection) -> list[OverviewReviewActivity]:
     return activity
 
 
-def _artifact_readiness_list(conn: sqlite3.Connection, state: str) -> OverviewArtifactList:
+def _artifact_readiness_list(
+    conn: sqlite3.Connection,
+    state: str,
+    *,
+    project: str | None = None,
+    path: str | None = None,
+) -> OverviewArtifactList:
     """Return a bounded, exact-total list for one non-ready artifact condition."""
     latest_completed = (
         "WITH ranked_completed AS ("
@@ -196,13 +235,23 @@ def _artifact_readiness_list(conn: sqlite3.Connection, state: str) -> OverviewAr
     if condition is None:
         raise ValueError(f"unknown artifact readiness state: {state!r}")
 
+    filters = ["a.is_active = 1", condition]
+    params: list[object] = []
+    if project is not None:
+        filters.append("a.project = ?")
+        params.append(project)
+    if path is not None:
+        filters.append("a.path = ?")
+        params.append(path)
+    where_clause = " AND ".join(filters)
+
     count_sql = (
         latest_completed + "SELECT COUNT(*) FROM artifacts a "
         "LEFT JOIN ranked_completed latest "
         "ON latest.artifact_id = a.id AND latest.sequence = 1 "
-        "WHERE a.is_active = 1 AND " + condition
+        "WHERE " + where_clause
     )
-    count_row = conn.execute(count_sql).fetchone()
+    count_row = conn.execute(count_sql, params).fetchone()
     assert count_row is not None
     total = int(count_row[0])
     item_sql = (
@@ -210,7 +259,7 @@ def _artifact_readiness_list(conn: sqlite3.Connection, state: str) -> OverviewAr
         + "SELECT a.id, a.path, a.artifact_type, a.project, latest.id, latest.finished_at "
         "FROM artifacts a LEFT JOIN ranked_completed latest "
         "ON latest.artifact_id = a.id AND latest.sequence = 1 "
-        "WHERE a.is_active = 1 AND " + condition + " ORDER BY a.path ASC, a.id ASC LIMIT ?"
+        "WHERE " + where_clause + " ORDER BY a.path ASC, a.id ASC LIMIT ?"
     )
     items = [
         OverviewArtifactReadiness(
@@ -222,7 +271,7 @@ def _artifact_readiness_list(conn: sqlite3.Connection, state: str) -> OverviewAr
             latest_completed_run_id=int(row[4]) if row[4] is not None else None,
             latest_completed_at=str(row[5]) if row[5] is not None else None,
         )
-        for row in conn.execute(item_sql, (ARTIFACT_LIST_LIMIT,))
+        for row in conn.execute(item_sql, (*params, ARTIFACT_LIST_LIMIT))
     ]
     return OverviewArtifactList(total=total, items=items)
 

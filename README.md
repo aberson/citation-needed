@@ -90,6 +90,14 @@ the WAL first so the file copy is consistent.
 | Project-wide rigor pass | `/citation-sweep <project>` | Enumerate LLM-facing files, cluster near-duplicate choices, batch-review, rank a backlog |
 | Backlog triage | `/citation-triage` | Walk the queue with the operator; record keep / cut / rewrite per item |
 
+For deterministic readiness discovery, `cite overview --json` accepts optional exact
+`--project <slug>` and `--path <stored-path>` filters. They apply before the count and 50-row
+limit on each of the three readiness lists: stale, unreviewed, and current-content-unavailable.
+When both are present, both must match. The top-level state, database counts, recent activity,
+and open distill queue remain workspace-wide; an empty filtered list does not prove that an
+unknown, missing, inactive, or ready artifact is fresh. Calls without filters retain the original
+workspace-wide Overview v1 output.
+
 ## Key design decisions
 
 - **Zero-touch reviews.** Reviewed targets gain zero bytes — no inline pointer lines. Output is

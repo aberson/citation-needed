@@ -24,6 +24,34 @@ def test_overview_json_for_absent_database_reports_uninitialized_not_zeroes(
     assert payload["state"] == "uninitialized"
     assert payload["counts"] is None
     assert payload["recent_activity"] is None
+    assert not missing.exists()
+
+
+def test_overview_filters_keep_missing_database_noncreating(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    missing = tmp_path / "missing.db"
+
+    assert (
+        main(
+            [
+                "overview",
+                "--json",
+                "--project",
+                "project-a",
+                "--path",
+                "skills/example/SKILL.md",
+                "--db",
+                str(missing),
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["state"] == "uninitialized"
+    assert payload["stale_artifacts"] is None
+    assert not missing.exists()
 
 
 def test_overview_json_for_initialized_empty_database_reports_real_zeroes(
@@ -39,6 +67,51 @@ def test_overview_json_for_initialized_empty_database_reports_real_zeroes(
     assert payload["counts"]["artifacts"] == 0
     assert payload["counts"]["open_distill_queue"] == 0
     assert payload["recent_activity"] == []
+
+
+def test_overview_cli_filters_only_readiness_lists(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "citation.db"
+    assert db.init_db(path)
+    conn = db.connect(path)
+    try:
+        conn.executemany(
+            "INSERT INTO artifacts "
+            "(path, artifact_type, project, current_content_hash, first_seen_at) "
+            "VALUES (?, 'skill', ?, 'seen-hash', '2026-08-09T00:00:00Z')",
+            [
+                ("skills/a/SKILL.md", "project-a"),
+                ("skills/b/SKILL.md", "project-b"),
+            ],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    assert (
+        main(
+            [
+                "overview",
+                "--json",
+                "--project",
+                "project-b",
+                "--path",
+                "skills/b/SKILL.md",
+                "--db",
+                str(path),
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["state"] == "review-required"
+    assert payload["counts"]["active_artifacts"] == 2
+    assert payload["unreviewed_artifacts"]["total"] == 1
+    assert [item["path"] for item in payload["unreviewed_artifacts"]["items"]] == [
+        "skills/b/SKILL.md"
+    ]
 
 
 def test_justify_list_json_is_a_versioned_empty_result_for_initialized_database(

@@ -91,6 +91,18 @@ def _build_parser() -> argparse.ArgumentParser:
     p_overview.add_argument(
         "--json", action="store_true", help="Emit the versioned Overview v1 JSON contract."
     )
+    p_overview.add_argument(
+        "--project",
+        default=None,
+        help="Filter only the three readiness lists by exact project slug; state, counts, "
+        "recent activity, and queue remain workspace-wide.",
+    )
+    p_overview.add_argument(
+        "--path",
+        default=None,
+        help="Filter only the three readiness lists by exact stored artifact path; state, "
+        "counts, recent activity, and queue remain workspace-wide.",
+    )
     p_overview.add_argument("--db", type=Path, default=db.DEFAULT_DB_PATH, help=_DB_HELP)
 
     p_justify = subparsers.add_parser(
@@ -624,10 +636,12 @@ def _cmd_status(db_path: Path) -> int:
     return 0
 
 
-def _cmd_overview(db_path: Path, as_json: bool) -> int:
+def _cmd_overview(
+    db_path: Path, as_json: bool, project: str | None, path: str | None
+) -> int:
     """Render the read-only overview without hiding absent database facts as zeroes."""
     try:
-        overview = read_queries.overview_for_path(db_path)
+        overview = read_queries.overview_for_path(db_path, project=project, path=path)
     except (OSError, sqlite3.Error) as exc:
         print(f"error: could not read overview: {exc}")
         return 1
@@ -1417,7 +1431,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "status":
         return _cmd_status(args.db)
     if args.command == "overview":
-        return _cmd_overview(args.db, args.json)
+        return _cmd_overview(args.db, args.json, args.project, args.path)
     if args.command == "justify":
         if args.justify_command == "list":
             return _cmd_justify_list(args.db, args.type)
