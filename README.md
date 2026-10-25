@@ -90,6 +90,21 @@ the WAL first so the file copy is consistent.
 | Project-wide rigor pass | `/citation-sweep <project>` | Enumerate LLM-facing files, cluster near-duplicate choices, batch-review, rank a backlog |
 | Backlog triage | `/citation-triage` | Walk the queue with the operator; record keep / cut / rewrite per item |
 
+## Skill Mesh 2.0 integration
+
+[Skill Mesh 2.0.0](https://github.com/aberson/skill-mesh/releases/tag/v2.0.0) packages
+portable host profiles for all four citation skills across Claude Code, GitHub Copilot and Codex.
+Those profiles provide the LLM judgment and orchestration layer; the `cite` CLI remains the sole
+owner of database writes, evidence verification, scoring and breakdown output. Portability does
+not relax the review gates: classification still requires isolated judge calls, and the release
+does not by itself demonstrate every citation workflow end to end on every host.
+
+The utility support required by Skill Mesh 2.0 is currently pinned to commit
+[`fdb1d8f`](https://github.com/aberson/citation-needed/commit/fdb1d8f96a22a8df027f4eae707ccb141fc48bac)
+on the
+[`skill-mesh-v2/overview-filters`](https://github.com/aberson/citation-needed/tree/skill-mesh-v2/overview-filters)
+branch, not this repository's `master` branch.
+
 ## Key design decisions
 
 - **Zero-touch reviews.** Reviewed targets gain zero bytes — no inline pointer lines. Output is
