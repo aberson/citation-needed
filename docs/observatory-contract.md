@@ -51,6 +51,14 @@ uninitialized Citation Needed database makes export fail visibly rather than cre
 an apparently-empty producer. An initialized empty database produces actual zeroes
 and `items: []`.
 
+The exporter always requests the unfiltered Overview v1 contract. The terminal
+`cite overview --json` command also accepts exact `--project` and `--path` filters,
+but these scope only the stale, unreviewed, and current-content-unavailable lists and
+their totals, before each list's 50-row limit. Its top-level state, counts, recent
+activity, and open queue stay workspace-wide. When both filters are present, both
+must match; empty filtered lists do not certify unknown, inactive, missing, or ready
+paths as fresh.
+
 The producer keeps output bounded: at most 100 reviewed skills, 20 choices per skill,
 10 citations per choice, 8,000 characters per detailed text field, and 512 KiB per
 artifact. Each omitted tail has an explicit `*_total`/`*_exported` count (including

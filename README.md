@@ -90,6 +90,14 @@ the WAL first so the file copy is consistent.
 | Project-wide rigor pass | `/citation-sweep <project>` | Enumerate LLM-facing files, cluster near-duplicate choices, batch-review, rank a backlog |
 | Backlog triage | `/citation-triage` | Walk the queue with the operator; record keep / cut / rewrite per item |
 
+For deterministic readiness discovery, `cite overview --json` accepts optional exact
+`--project <slug>` and `--path <stored-path>` filters. They apply before the count and 50-row
+limit on each of the three readiness lists: stale, unreviewed, and current-content-unavailable.
+When both are present, both must match. The top-level state, database counts, recent activity,
+and open distill queue remain workspace-wide; an empty filtered list does not prove that an
+unknown, missing, inactive, or ready artifact is fresh. Calls without filters retain the original
+workspace-wide Overview v1 output.
+
 ## Skill Mesh 2.0 integration
 
 [Skill Mesh 2.0.0](https://github.com/aberson/skill-mesh/releases/tag/v2.0.0) packages
@@ -99,11 +107,9 @@ owner of database writes, evidence verification, scoring and breakdown output. P
 not relax the review gates: classification still requires isolated judge calls, and the release
 does not by itself demonstrate every citation workflow end to end on every host.
 
-The utility support required by Skill Mesh 2.0 is currently pinned to commit
-[`fdb1d8f`](https://github.com/aberson/citation-needed/commit/fdb1d8f96a22a8df027f4eae707ccb141fc48bac)
-on the
-[`skill-mesh-v2/overview-filters`](https://github.com/aberson/citation-needed/tree/skill-mesh-v2/overview-filters)
-branch, not this repository's `master` branch.
+The `cite overview --project/--path` filters these profiles rely on are on `master`, merged
+from commit [`fdb1d8f`](https://github.com/aberson/citation-needed/commit/fdb1d8f96a22a8df027f4eae707ccb141fc48bac)
+(formerly pinned on the `skill-mesh-v2/overview-filters` branch). No separate branch is needed.
 
 ## Key design decisions
 
