@@ -1,0 +1,4 @@
+{
+ "name": "citation-review",
+ "description": "Evidence-check one LLM-facing artifact through Citation Needed's calibrated review pipeline."
+}

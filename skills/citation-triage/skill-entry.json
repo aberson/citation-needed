@@ -1,0 +1,4 @@
+{
+ "name": "citation-triage",
+ "description": "Walk Citation Needed's ranked distill queue and record keep, cut, or rewrite decisions."
+}

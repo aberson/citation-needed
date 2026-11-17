@@ -17,7 +17,7 @@ compounds across reviews.
 | HTTP | httpx (SSRF-guarded fetch seam in `verify.py`) |
 | Parsing | PyYAML (frontmatter), stdlib `tomllib` (observatory registry) |
 | CLI | argparse, entry point `cite` |
-| LLM layer | Claude Code skills `/citation-review`, `/citation-distill`, `/citation-sweep`, `/citation-triage` — thin wrappers in `dev/.claude/skills/citation-*/` (coding-root repo, junction-exposed); the CLI never calls an LLM |
+| LLM layer | Skills `/citation-review`, `/citation-distill`, `/citation-sweep`, `/citation-triage` for Claude Code and Codex — project-local: source in `skills/<name>/`, generated into `.claude/skills/` and `.agents/skills/` by `tools/skills_build.py`, so they load only in sessions opened here; the CLI never calls an LLM |
 | Tests / quality | pytest, ruff, mypy |
 
 ## Commands
@@ -33,6 +33,8 @@ uv run --project citation-needed cite seed import
 uv run --project citation-needed pytest
 uv run --project citation-needed ruff check .
 uv run --project citation-needed mypy src
+uv run --project citation-needed python citation-needed/tools/skills_build.py write
+uv run --project citation-needed python citation-needed/tools/skills_build.py check
 ```
 
 No server, no ports.
@@ -44,6 +46,8 @@ plan.md                  # canonical entry plan (### Step N: blocks)
 schema.sql               # canonical DDL (new DBs only); migrations/ own all changes after v0.1
 src/citation_needed/     # cli, db, models, discover, corpus, resolve, verify, review,
                          # breakdown, distill, calibrate
+skills/                  # the four skills: core.md + providers/{claude,codex}.md + skill-entry.json
+tools/skills_build.py    # generates .claude/skills/ and .agents/skills/ (committed) from skills/
 prompts/                 # versioned LLM prompt templates (hash = calibration fingerprint A)
 fixtures/calibration/    # frozen good anchor + SYNTHETIC garbage anchor
 seed/                    # tracked CC0 seed corpus + PROVENANCE.md
@@ -91,7 +95,7 @@ wholesale, its seed data has diverged), #15, #14, #13. Public-exposure follow-up
   OpenAlex fallback tier; S2 + Crossref work keyless).
 - Live web access at review time (WebSearch/WebFetch in the harness + direct httpx API calls).
 - The nested repo boundary: this project gets its own `.git` (via /repo-init). Anchor all git
-  operations here — from `dev/` root they land in coding-root. The four SKILL.md wrappers live in
-  the CODING-ROOT repo (`dev/.claude/skills/citation-*/`) — cross-cutting changes need two
-  commits in two repos.
+  operations here — from `dev/` root they land in coding-root. The four skills' source lives here
+  (`skills/`); edit it, then run `tools/skills_build.py write` and commit the generated
+  `.claude/skills/` and `.agents/skills/` folders. Never hand-edit those generated folders.
 - Reviews must never write into reviewed targets; breakdown docs + DB rows only.

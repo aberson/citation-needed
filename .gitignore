@@ -19,8 +19,10 @@ build/
 .ruff_cache/
 uv.lock.tmp
 
-# Session task-state (per-session, never committed)
-.claude/
+# Session task-state (per-session, never committed). The project-local skills in
+# .claude/skills/ are committed: tools/skills_build.py generates them from skills/.
+.claude/*
+!.claude/skills/
 
 # OS / editor
 .DS_Store

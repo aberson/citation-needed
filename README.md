@@ -98,16 +98,31 @@ and open distill queue remain workspace-wide; an empty filtered list does not pr
 unknown, missing, inactive, or ready artifact is fresh. Calls without filters retain the original
 workspace-wide Overview v1 output.
 
-## Skill Mesh 2.0 integration
+## The skills
 
-[Skill Mesh 2.0.0](https://github.com/aberson/skill-mesh/releases/tag/v2.0.0) packages
-portable host profiles for all four citation skills across Claude Code, GitHub Copilot and Codex.
-Those profiles provide the LLM judgment and orchestration layer; the `cite` CLI remains the sole
-owner of database writes, evidence verification, scoring and breakdown output. Portability does
-not relax the review gates: classification still requires isolated judge calls, and the release
-does not by itself demonstrate every citation workflow end to end on every host.
+The four skills live in this repository under `skills/<name>/`: a host-neutral `core.md`, a
+thin wrapper per host in `providers/claude.md` and `providers/codex.md`, and `skill-entry.json`
+holding the description hosts list. They provide the LLM judgment and orchestration layer; the
+`cite` CLI remains the sole owner of database writes, evidence verification, scoring and
+breakdown output. Classification still requires isolated judge calls on every host.
 
-The `cite overview --project/--path` filters these profiles rely on are on `master`, merged
+Until 2026-11-16 they shipped in the [Skill Mesh](https://github.com/aberson/skill-mesh)
+catalog. They are tool-specific, so they now live here as **project-local** skills: they load
+only in a Claude Code or Codex session opened in this repository, not in every session. Open a
+session here and run, for example, `/citation-review <workspace-relative path>`; artifact paths
+stay relative to the workspace that holds this checkout.
+
+`tools/skills_build.py` generates the committed host folders from `skills/` (Claude:
+`.claude/skills/`, Codex: `.agents/skills/`). Edit `skills/`, never the generated folders:
+
+```
+uv run python tools/skills_build.py write   # regenerate .claude/skills and .agents/skills
+uv run python tools/skills_build.py check   # exit 1 if a committed generated file is stale
+```
+
+`tests/test_skills_build.py` runs the same check, so a stale folder fails the test suite.
+
+The `cite overview --project/--path` filters these skills rely on are on `master`, merged
 from commit [`fdb1d8f`](https://github.com/aberson/citation-needed/commit/fdb1d8f96a22a8df027f4eae707ccb141fc48bac)
 (formerly pinned on the `skill-mesh-v2/overview-filters` branch). No separate branch is needed.
 
