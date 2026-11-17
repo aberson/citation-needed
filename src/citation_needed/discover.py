@@ -91,7 +91,7 @@ MEMORY_INDEX_NAME = "MEMORY.md"
 _MEMORY_KINDS = frozenset(get_args(MemoryKind))
 
 _ENTRY_PLAN_NAMES = ("plan.md", "master_plan.md")
-_PLAN_SUBDIRS = ("plans", "docs", "documentation")
+_PLAN_SUBDIRS = ("docs/plans", "plans", "docs", "documentation")
 _PLAN_SKIP_RE = re.compile(r"archive|brainstorm|template|draft", re.IGNORECASE)
 
 _STEP_RE = re.compile(r"^###\s+Step\s+\w+\s*:", re.MULTILINE)
@@ -632,7 +632,8 @@ def _collect_walk_candidates(
         for entry in dir_entries:
             name = entry.name
             if name.lower() in EXCLUDED_DIR_NAMES or (
-                in_docs and name.lower().startswith(_ARCHIVED_PREFIX)
+                in_docs
+                and (name.lower().startswith(_ARCHIVED_PREFIX) or name.lower() == "completed")
             ):
                 report.excluded_dir_count += 1
                 continue

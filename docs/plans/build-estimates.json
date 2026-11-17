@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "project": "citation-needed",
+  "plan_path": "docs/plans/master_plan.md",
+  "plan_sha256": "68bb53ed4a67f0cbf26b0ff372aa90c5ca4548cadfed5f0050f80d8114d3ddd3",
+  "units": "hours",
+  "estimates": [
+    {
+      "step_id": "14",
+      "title": "Observatory artifact export",
+      "worker_hours": {
+        "low": 0.25,
+        "high": 0.75
+      },
+      "attention_hours": {
+        "low": 0.1,
+        "high": 0.3
+      },
+      "dependencies": [
+        "work_079d1dc36180c036db82c8644939d7bad6920c79037f7d45982723a35b6f4fea",
+        "work_7943269642cab3b75cd033fcf3ddba91555ee13305f34903b6ae8b5977cc698c"
+      ],
+      "rationale": "Already implemented exporter needs real reviewed-skill round-trip and no-DB-write verification; do not estimate reimplementation.",
+      "type": "code",
+      "status": "code_complete_acceptance_pending",
+      "basis": "model",
+      "model_id": "Codex session; runtime model not exposed",
+      "confidence": 0.35,
+      "estimated_at": "2026-10-14T17:06:53.487485Z",
+      "waiting_hours": null,
+      "work_id": "work_ea8e65ec6c134e0294e34d4330ae623e43e747caf32a01c0715e75f61ed0ca85",
+      "source_digest": "ac8e7930812036cd32972b851ced8a5b3858e5033f7beb3588bae6ac0a5d8f82",
+      "plan_path": "docs/plans/master_plan.md",
+      "hold_reason": "",
+      "confidence_note": "Original qualitative rating subjective-low; mapped to numeric scale for ForecastEstimate, not empirical calibration.",
+      "enabled": true,
+      "unresolved_dependencies": [],
+      "source_ref": {
+        "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+        "locator": "citation-needed/docs/plans/master_plan.md",
+        "digest": "68bb53ed4a67f0cbf26b0ff372aa90c5ca4548cadfed5f0050f80d8114d3ddd3",
+        "line_start": 655,
+        "line_end": 675
+      }
+    },
+    {
+      "step_id": "15",
+      "title": "Real populated smoke",
+      "worker_hours": {
+        "low": 0.4,
+        "high": 1.0
+      },
+      "attention_hours": {
+        "low": 0.5,
+        "high": 1.25
+      },
+      "dependencies": [
+        "work_ea8e65ec6c134e0294e34d4330ae623e43e747caf32a01c0715e75f61ed0ca85"
+      ],
+      "rationale": "Calibrate production path, review one real skill and verify populated status/citations; provider time is unknown.",
+      "type": "operator",
+      "status": "pending",
+      "basis": "model",
+      "model_id": "Codex session; runtime model not exposed",
+      "confidence": 0.35,
+      "estimated_at": "2026-10-14T17:06:53.487485Z",
+      "waiting_hours": null,
+      "work_id": "work_e3fb552ddd19df90c10010c7e21614d0a94abc439bdfce2cd465ea2c42bcb494",
+      "source_digest": "bf75ef68529786c83ef68c7eb2c3c5e2095cd2fb1055bde2a4a9948556d7f657",
+      "plan_path": "docs/plans/master_plan.md",
+      "hold_reason": "",
+      "confidence_note": "Original qualitative rating subjective-low; mapped to numeric scale for ForecastEstimate, not empirical calibration.",
+      "enabled": true,
+      "unresolved_dependencies": [
+        "its final DONE acceptance depends on this real smoke",
+        "not the other way around"
+      ],
+      "source_ref": {
+        "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+        "locator": "citation-needed/docs/plans/master_plan.md",
+        "digest": "68bb53ed4a67f0cbf26b0ff372aa90c5ca4548cadfed5f0050f80d8114d3ddd3",
+        "line_start": 676,
+        "line_end": 832
+      }
+    },
+    {
+      "step_id": "M1",
+      "title": "Operator UAT — read one breakdown against its target",
+      "worker_hours": {
+        "low": 0.1,
+        "high": 0.25
+      },
+      "attention_hours": {
+        "low": 0.3,
+        "high": 0.75
+      },
+      "dependencies": [],
+      "rationale": "Operator inspects extraction, evidence classes, empty-search record, score interpretation and untouched target.",
+      "type": "operator",
+      "status": "pending",
+      "basis": "model",
+      "model_id": "Codex session; runtime model not exposed",
+      "confidence": 0.35,
+      "estimated_at": "2026-10-14T17:06:53.487485Z",
+      "waiting_hours": null,
+      "work_id": "work_221e8fa1b26b1a4bcc82355302ef693283a9b61c5b3221c96fc52d34e67466d1",
+      "source_digest": "9745a64bbd4418dae055f0040082c4077cbac8db7afa922f4ba5c250ecdf3fbd",
+      "plan_path": "docs/plans/master_plan.md",
+      "hold_reason": "",
+      "confidence_note": "Original qualitative rating subjective-low; mapped to numeric scale for ForecastEstimate, not empirical calibration.",
+      "enabled": true,
+      "unresolved_dependencies": [],
+      "source_ref": {
+        "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+        "locator": "citation-needed/docs/plans/master_plan.md",
+        "digest": "68bb53ed4a67f0cbf26b0ff372aa90c5ca4548cadfed5f0050f80d8114d3ddd3",
+        "line_start": 576,
+        "line_end": 592
+      }
+    },
+    {
+      "step_id": "M2",
+      "title": "citation-triage session over the sweep queue",
+      "worker_hours": {
+        "low": 0.1,
+        "high": 0.3
+      },
+      "attention_hours": {
+        "low": 0.4,
+        "high": 1.0
+      },
+      "dependencies": [],
+      "rationale": "Inspect ranked justifications and persist keep/cut/rewrite choices without target edits.",
+      "type": "operator",
+      "status": "pending",
+      "basis": "model",
+      "model_id": "Codex session; runtime model not exposed",
+      "confidence": 0.35,
+      "estimated_at": "2026-10-14T17:06:53.487485Z",
+      "waiting_hours": null,
+      "work_id": "work_e3516b9d46c0c5b5ea4c32686e2223e7c803d6c9d07122ab936a0c486e999a40",
+      "source_digest": "b6c5d4bbe545b43755f7a5c5ffb267ff2ca6e969df5874cd402704b0b42312de",
+      "plan_path": "docs/plans/master_plan.md",
+      "hold_reason": "",
+      "confidence_note": "Original qualitative rating subjective-low; mapped to numeric scale for ForecastEstimate, not empirical calibration.",
+      "enabled": true,
+      "unresolved_dependencies": [],
+      "source_ref": {
+        "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+        "locator": "citation-needed/docs/plans/master_plan.md",
+        "digest": "68bb53ed4a67f0cbf26b0ff372aa90c5ca4548cadfed5f0050f80d8114d3ddd3",
+        "line_start": 593,
+        "line_end": 612
+      }
+    }
+  ],
+  "excluded": "Completed implementation units. Deferred later candidates and unresolved separately scoped issue work are not estimated as ready build steps. Provider/calendar waiting remains unknown.",
+  "adapter_note": "Use source step IDs; resolve Ambition work_id and source_digest via the importer. These are forecasts, not elapsed observations.",
+  "identity_note": "work_id and source_digest come from Observatory normalization and forecast.fingerprint; raw plan SHA is separate.",
+  "compatibility": "Rows validate as ForecastEstimate. Portable worksheet only: production ForecastConfig is currently restricted to dev-observatory and 100 estimates; no saved forecast was modified.",
+  "assumptions": "Forward remaining effort in hours, including implementation and its checks/review. Operator attention is separate. Elapsed waits, service quotas and hardware availability are not labor. These are model forecasts, not measured history. Held rows remain disabled.",
+  "validated_at": "2026-11-17T03:42:15.286285Z"
+}
