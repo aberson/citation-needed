@@ -106,8 +106,8 @@ The workspace has already solved an isomorphic discoverability problem — "how 
 a per-project artifact without a pointer sprinkled through the codebase" — and solved it with a
 **path convention**, not an embedded marker:
 
-> "Each project keeps ONE canonical entry plan named `plan.md` or `master_plan.md`, at the
-> project root or under `plans/`/`docs`/`documentation/` ... This is the discoverable path the
+> "Each project keeps ONE canonical entry plan named `docs/plans/master_plan.md` or `master_plan.md`, at the
+> project root or under `plans/`/`docs`/`docs/` ... This is the discoverable path the
 > control plane's observer + tooling read; a plan kept elsewhere/otherwise-named is invisible to
 > them."
 > — `c:/Users/x/dev/CLAUDE.md:17`

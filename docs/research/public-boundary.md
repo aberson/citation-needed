@@ -126,8 +126,8 @@ citation toolkit, by fetching each provider's own license/terms page (not summar
 
 ### Crossref — CC0 for metadata, WITH an abstracts carve-out
 
-- Source: [Crossref — REST API metadata license information](https://www.crossref.org/documentation/retrieve-metadata/rest-api/rest-api-metadata-license-information/)
-  and [Crossref — Metadata Retrieval](https://www.crossref.org/documentation/retrieve-metadata/)
+- Source: [Crossref — REST API metadata license information](https://www.crossref.org/docs/retrieve-metadata/rest-api/rest-api-metadata-license-information/)
+  and [Crossref — Metadata Retrieval](https://www.crossref.org/docs/retrieve-metadata/)
   (fetched directly).
 - Finding: Crossref's own bibliographic metadata (titles, authors, DOIs, references, and other
   "Crossref-generated data") is released as **public domain / CC0** and is freely reusable and
@@ -298,7 +298,7 @@ accumulates real-workspace-derived golden fixtures (which would need the same ca
 - `gh repo view aberson/{measure-twice,x-marks-the-spot,aberson.github.io,claude-skills} --json licenseInfo,visibility` (live GitHub API check, this run)
 
 **External (fetched this run):**
-- [Crossref — REST API metadata license information](https://www.crossref.org/documentation/retrieve-metadata/rest-api/rest-api-metadata-license-information/)
-- [Crossref — Metadata Retrieval](https://www.crossref.org/documentation/retrieve-metadata/)
+- [Crossref — REST API metadata license information](https://www.crossref.org/docs/retrieve-metadata/rest-api/rest-api-metadata-license-information/)
+- [Crossref — Metadata Retrieval](https://www.crossref.org/docs/retrieve-metadata/)
 - [OpenAlex — license.md (ourresearch/openalex-docs)](https://github.com/ourresearch/openalex-docs/blob/main/license.md)
 - [Semantic Scholar — Dataset License Agreement](https://api.semanticscholar.org/license/)

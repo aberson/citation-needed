@@ -167,8 +167,8 @@ code yet) — genuinely greenfield.
    its port then, in the scrapable shapes `descriptor-contract.md:19-20` lists.
 
 4. **Canonical plan location** (`descriptor-contract.md:48-66`, `CLAUDE.md:17`): keep ONE entry plan
-   at `dev/citation-needed/plan.md` (root, preferred) or `documentation/*-plan.md` — the observer
-   checks root-first, `plan.md` before `master_plan.md`
+   at `dev/citation-needed/plan.md` (root, preferred) or `docs/*-plan.md` — the observer
+   checks root-first, `docs/plans/master_plan.md` before `master_plan.md`
    (`descriptor-contract.md:56-58`). Keep inline `### Step N:` blocks with `**Status:** DONE` markers
    (or `## Phase` headings) **in that entry plan itself** — a pure pointer/index plan yields a goal
    but no built/total ratio (`descriptor-contract.md:59-63`, `CLAUDE.md:17`). Using `/plan-init` to

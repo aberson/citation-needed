@@ -236,19 +236,19 @@ citation-needed should be able to isolate and cite independently of its neighbor
 
 ---
 
-## 5. Plan docs — `plan.md` / `master_plan.md` / `documentation/*-plan.md`
+## 5. Plan docs — `docs/plans/master_plan.md` / `master_plan.md` / `docs/*-plan.md`
 
 ### Count
-- `plan.md` or `master_plan.md` **at a project root** (the canonical entry-plan location per
-  `.claude/rules/descriptor-contract.md` §4): 12 root-level `plan.md` files sampled directly
+- `docs/plans/master_plan.md` or `master_plan.md` **at a project root** (the canonical entry-plan location per
+  `.claude/rules/descriptor-contract.md` §4): 12 root-level `docs/plans/master_plan.md` files sampled directly
   (`aberson.github.io`, `always-best-estimates`, `applied_learning`, `b2_project_goblin`,
   `coding_without_pants`, `measure-twice`, `on-brand`, `pta_finance`, `shake_spear`,
   `void_furnace`, `walkies`, `x-marks-the-spot`).
-- **All** `plan.md`/`master_plan.md` workspace-wide (any depth, any project, excluding
+- **All** `docs/plans/master_plan.md`/`master_plan.md` workspace-wide (any depth, any project, excluding
   vendored/archive dirs): **61**.
-- **All** `documentation/*-plan.md`-shaped feature/phase plans workspace-wide: **88**.
-- Combined plan-shaped corpus scanned for heading convention (98 files, `plan.md` +
-  `master_plan.md` + `documentation/*-plan.md` + `documentation/plans/*.md`, archive-excluded):
+- **All** `docs/*-plan.md`-shaped feature/phase plans workspace-wide: **88**.
+- Combined plan-shaped corpus scanned for heading convention (98 files, `docs/plans/master_plan.md` +
+  `master_plan.md` + `docs/*-plan.md` + `docs/plans/*.md`, archive-excluded):
   **32** use the `### Step N:` convention, **9** use `## Phase` headings — confirming both
   conventions named in `.claude/rules/descriptor-contract.md` §4 are live in the corpus
   simultaneously (not one project's quirk), plus a majority that use neither inline (see the
@@ -262,16 +262,16 @@ Two structurally distinct plan shapes coexist:
    blocks each with `**Problem:**`/`**Type:**`/`**Issue:**`/`**Flags:**` bullets (per
    `.claude/rules/plan-and-issue-flow.md`: "Plan steps need `### Step N:` + Problem/Type/Issue/Flags
    bullets") and a `**Status:** DONE` marker once built. Size range: 755-1,287 lines for the
-   larger root `plan.md` files sampled directly (this Read tool truncates around 25K tokens, i.e.
+   larger root `docs/plans/master_plan.md` files sampled directly (this Read tool truncates around 25K tokens, i.e.
    roughly this range, per the note below).
-2. **Pointer/index plan** — a short `plan.md` (as little as **9 lines**) that only links out to
+2. **Pointer/index plan** — a short `docs/plans/master_plan.md` (as little as **9 lines**) that only links out to
    sub-plans, e.g. `void_furnace/plan.md:1-26`: "# void_furnace plan — moved ... The old
-   monolithic `plan.md` was split during /plan-review round 2 because its 26.7K-token size
-   exceeded the Read tool's 25K ceiling" — pointing to `documentation/master_plan.md` +
-   `documentation/plans/phase-{0..4}-*.md` + `documentation/appendix/`. Per
+   monolithic `docs/plans/master_plan.md` was split during /plan-review round 2 because its 26.7K-token size
+   exceeded the Read tool's 25K ceiling" — pointing to `docs/master_plan.md` +
+   `docs/plans/phase-{0..4}-*.md` + `docs/appendix/`. Per
    `.claude/rules/descriptor-contract.md` §4, a pure pointer plan "yields a goal but no
    built/total ratio" for dev-observatory's scraper — the same limitation applies to a citation
-   review: **the entry `plan.md` is not where the choices live**; the reviewer must resolve to the
+   review: **the entry `docs/plans/master_plan.md` is not where the choices live**; the reviewer must resolve to the
    linked phase files.
 
 ### Choice-extraction unit
@@ -468,8 +468,8 @@ choice-extraction unit and frontmatter shape (not a single generic "document" ty
 | `rule` | `.claude/rules/*.md` | none | one named `##` sub-rule (rule+incident+source-memory triad) | 22 |
 | `reference` | `.claude/references/*.md` | none | usually owned by a rule; standalone only for taxonomy-shaped refs | 12 |
 | `claude_md` | `CLAUDE.md` (root / project-root / scoped-child) | none | one `##` section | 34 (3 structural sub-shapes: root, project-root, scoped-child) |
-| `plan_inline` | `plan.md`/`master_plan.md`/`documentation/*-plan.md` with inline steps | none | one `### Step N:` or `## Phase` block | 32 Step-shaped + 9 Phase-shaped (of 98 scanned) |
-| `plan_pointer` | short `plan.md` that only links to phase files | none | resolve to linked files, extract there | present (e.g. void_furnace, 9-line file) |
+| `plan_inline` | `docs/plans/master_plan.md`/`master_plan.md`/`docs/*-plan.md` with inline steps | none | one `### Step N:` or `## Phase` block | 32 Step-shaped + 9 Phase-shaped (of 98 scanned) |
+| `plan_pointer` | short `docs/plans/master_plan.md` that only links to phase files | none | resolve to linked files, extract there | present (e.g. void_furnace, 9-line file) |
 | `memory_fact` | `C:/Users/x/.claude/projects/*/memory/*.md` (excl. `MEMORY.md`) | **nested** `metadata:{node_type,type,originSessionId,modified}` | usually the **whole file** is one choice | ~459 |
 | `memory_index` | `MEMORY.md` | none | not a choice source itself — a routing index into `memory_fact` rows | 13 |
 | `workflow_js` | `.claude/workflows/*.js` | JS `meta = {...}` object | the `meta` block + tier-pin comments | 2 |

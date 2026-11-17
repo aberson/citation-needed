@@ -1,6 +1,6 @@
 # citation-needed — SQLite schema draft
 
-Status: pre-implementation research (no `plan.md` exists yet for this project). Read-only
+Status: pre-implementation research (no `docs/plans/master_plan.md` exists yet for this project). Read-only
 investigation; nothing outside this file was modified. Written 2026-07-21 against workspace HEAD
 `8c95f95faba483a63bc332a415feb9e2015635eb` (branch `switchboard-offload-plan`).
 

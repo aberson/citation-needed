@@ -8,7 +8,7 @@ Discovers the 5 v1 artifact types (plan.md §4.1 item 1 + §3.1 artifacts bullet
                   artifact-type-extensions.md §b)
 - ``claude_md`` — every ``CLAUDE.md`` (workspace root + nested project dirs)
 - ``plan``      — ONE canonical entry plan per candidate project root, mirroring the
-                  descriptor-contract finder: root-first, ``plan.md`` before
+                  descriptor-contract finder: root-first, ``docs/plans/master_plan.md`` before
                   ``master_plan.md``, then the same names under ``plans/``/``docs/``/
                   ``documentation/``, then a ``*-plan.md``/``*_plan.md`` glob in
                   ``docs``/``documentation`` skipping ``*archive*``/``*brainstorm*``/
@@ -91,7 +91,7 @@ MEMORY_INDEX_NAME = "MEMORY.md"
 _MEMORY_KINDS = frozenset(get_args(MemoryKind))
 
 _ENTRY_PLAN_NAMES = ("plan.md", "master_plan.md")
-_PLAN_SUBDIRS = ("plans", "docs", "documentation")
+_PLAN_SUBDIRS = ("docs/plans", "plans", "docs", "documentation")
 _PLAN_SKIP_RE = re.compile(r"archive|brainstorm|template|draft", re.IGNORECASE)
 
 _STEP_RE = re.compile(r"^###\s+Step\s+\w+\s*:", re.MULTILINE)
@@ -632,7 +632,8 @@ def _collect_walk_candidates(
         for entry in dir_entries:
             name = entry.name
             if name.lower() in EXCLUDED_DIR_NAMES or (
-                in_docs and name.lower().startswith(_ARCHIVED_PREFIX)
+                in_docs
+                and (name.lower().startswith(_ARCHIVED_PREFIX) or name.lower() == "completed")
             ):
                 report.excluded_dir_count += 1
                 continue

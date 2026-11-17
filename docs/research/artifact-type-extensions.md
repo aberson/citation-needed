@@ -1,7 +1,7 @@
 # Artifact-type extensions — should citation-needed cover more input types?
 
 **Scope of this doc.** citation-needed's v1 `artifact_type` CHECK enum covers 5 types
-(`memory`, `skill`, `rule`, `claude_md`, `plan`); `plan.md`'s Decision Inventory (D12) already
+(`memory`, `skill`, `rule`, `claude_md`, `plan`); `docs/plans/master_plan.md`'s Decision Inventory (D12) already
 lists 5 more as **deferred-by-migration**: `reference`, `workflow_js`, `hook_prompt`, `agents_md`,
 `memory_index` (`plan.md:602`, `docs/research/corpus-survey.md:459-477` §9). The operator asked
 whether there are *other* input types worth covering, specifically flagging agent definitions
@@ -41,7 +41,7 @@ adoption).
 | (g) `.claude/settings.json` hook wiring | **skip — structurally out of scope** | Wiring only; the LLM-facing prose is the hook *script's* stdout template, already covered by the deferred `hook_prompt` type |
 | (g) `CLAUDE.local.md` | **later, same shape as `claude_md`** | Zero workspace instances; when it appears, reuse the `claude_md` extractor with an `is_local` flag (privacy note, not a schema concern) |
 
-No candidate below requires a new **schema shape** beyond what `plan.md` §3.1 already designed:
+No candidate below requires a new **schema shape** beyond what `docs/plans/master_plan.md` §3.1 already designed:
 `artifact_type` is a CHECK enum extended by migration, and every new type's fields fit
 `details_json` (JSON1, pydantic-validated) exactly like the five deferred types already do.
 
@@ -113,12 +113,12 @@ Two candidate units, likely both needed:
 No schema-shape problem: a `models.py` pydantic model with `tools`, `disallowed_tools`, `model`,
 `permission_mode`, `isolation`, `memory_scope`, `scope` (`project`\|`user`\|`plugin`\|`managed`)
 mirrors the `skill` model's approach exactly. One more `artifact_type` CHECK enum value via a
-migration — the exact mechanism `plan.md` §3.1 already designed for the 5 deferred types.
+migration — the exact mechanism `docs/plans/master_plan.md` §3.1 already designed for the 5 deferred types.
 
 ### Priority: v1.1 (first migration)
 
 Not v1: v1's job is proving the pipeline (extraction → cite → score → calibrate) against a
-**populated, real** local corpus so the calibration gate (`plan.md` §4.5) has something to anchor
+**populated, real** local corpus so the calibration gate (`docs/plans/master_plan.md` §4.5) has something to anchor
 on. Agent definitions have zero workspace instances to prototype the extractor against or seed the
 corpus from. Once v1 ships and either this workspace or an OSS contributor starts using
 `.claude/agents/`, the addition is cheap (same `details_json` pattern as `skill`) — bundle it into
@@ -254,7 +254,7 @@ independent secondary sources in the same search pass):
   grouping, ~12,000-char recommended limit. No frontmatter — closer to `claude_md`'s shape.
 - **`AGENTS.md`** — per the search results, read natively by "Codex, Cursor, Copilot, Gemini CLI,
   Aider, Windsurf, Zed, Factory, Jules, and over 20 other tools" — the emerging vendor-neutral
-  standard, already the highest-prevalence member of this family. **Already in `plan.md`'s v1
+  standard, already the highest-prevalence member of this family. **Already in `docs/plans/master_plan.md`'s v1
   deferred list** (`agents_md`, D12) — corpus-survey already verdicted it "structurally CLAUDE.md-
   shaped" (`docs/research/corpus-survey.md:412-413,477`).
 - **`GEMINI.md`**, **`CODEX.md`**, **`OPENCODE.md`** — tool-specific analogues in the same
@@ -463,7 +463,7 @@ follow-up, but it does not need its own migration.
   `@AGENTS.md`, using Claude Code's `@`-import memory syntax (confirmed live in the fetched
   sub-agents doc's CLAUDE.md-hierarchy description). This is not a new artifact type, but a
   **discovery-time pointer** a `claude_md` scan must resolve — exactly analogous to the
-  skill-pointer/plan-pointer resolution logic `plan.md` Step 2 already designs
+  skill-pointer/plan-pointer resolution logic `docs/plans/master_plan.md` Step 2 already designs
   (`docs/research/corpus-survey.md:99-111,267-283`). Without resolving it, a citation-needed scan
   of `career-ops/CLAUDE.md` would silently report "one line, zero choices" when the real content is
   100+ lines away in `AGENTS.md`. **v1** — a one-line addition to Step 2's existing

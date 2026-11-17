@@ -1,0 +1,1028 @@
+{
+  "project": "citation-needed",
+  "plan_path": "docs/plans/master_plan.md",
+  "plan_sha256": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+  "notices": [
+    "unread Status line at citation-needed/docs/plans/master_plan.md:655: - **Status:** CODE COMPLETE — **NOT DONE** (code merged to master as `3e3cf12` on 2026-08-10,"
+  ],
+  "diagnostic": null,
+  "units": [
+    {
+      "work_id": "work_ac6bcdf486972c7a5854d1fb2dc76fa71be51d0dad02e3339f7542fff24d8d56",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 455,
+          "line_end": 464,
+          "excerpt": "### Step 1: Scaffold, schema, migrations\n- **Problem:** Create the uv package skeleton: `pyproject.toml` (py3.12+, entry `cite`), `src/citation_needed/` layout, `schema.sql` v1 (the 7 tables + FTS5 virtual table per `docs/research/schema-draft.md` §7 with the four §3.1 amendments), `db.py` init + `PRAGMA user_version` migration loop + WAL/busy_timeout connection defaults, pydantic details models, day-0 `.gitignore` (`data/`, `breakdowns/`, `*.db*`, caches), `LICENSE` (MIT), README stub.\n- **Type:** code\n- **Issue:** #1\n- **Flags:** --reviewers deep\n- **Produces:** pyproject.toml, schema.sql, migrations/, src/citation_needed/{cli,db,models}.py, tests/test_schema.py, .gitignore, LICENSE, README.md\n- **Done when:** `uv run cite init-db` creates all 7 tables + FTS5 index in a fresh `data/citation.db`; `tests/test_schema.py` round-trips a golden details_json blob per artifact_type and asserts pydantic fields == live columns; pytest/ruff/mypy green.\n- **Depends on:** none\n- **Status:** DONE (2026-07-21)\n"
+        }
+      ],
+      "title": "Scaffold, schema, migrations",
+      "summary": "### Step 1: Scaffold, schema, migrations\n- **Problem:** Create the uv package skeleton: `pyproject.toml` (py3.12+, entry `cite`), `src/citation_needed/` layout, `schema.sql` v1 (the 7 tables + FTS5 virtual table per `docs/research/schema-draft.md` §7 with the four §3.1 amendments), `db.py` init + `PRAGMA user_version` migration loop + WAL/busy_timeout connection defaults, pydantic details models, day-0 `.gitignore` (`data/`, `breakdowns/`, `*.db*`, caches), `LICENSE` (MIT), README stub.\n- **Type:** code\n- **Issue:** #1\n- **Flags:** --reviewers deep\n- **Produces:** pyproject.toml, schema.sql, migrations/, src/citation_needed/{cli,db,models}.py, tests/test_schema.py, .gitignore, LICENSE, README.md\n- **Done when:** `uv run cite init-db` creates all 7 tables + FTS5 index in a fresh `data/citation.db`; `tests/test_schema.py` round-trips a golden details_json blob per artifact_type and asserts pydantic fields == live columns; pytest/ruff/mypy green.\n- **Depends on:** none\n- **Status:** DONE (2026-07-21)\n",
+      "acceptance": "`uv run cite init-db` creates all 7 tables + FTS5 index in a fresh `data/citation.db`; `tests/test_schema.py` round-trips a golden details_json blob per artifact_type and asserts pydantic fields == live columns; pytest/ruff/mypy green.",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [],
+      "unresolved_dependencies": [
+        "none"
+      ],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers deep",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "19b6adbbdde2e63fe42a3ea092bf556e4d855db344e862420116123e2ddfcc90",
+      "heading": "### Step 1: Scaffold, schema, migrations"
+    },
+    {
+      "work_id": "work_34536c5dfc29668147805ad435bdce43bc75697e2829162180e6ce7b9d708e66",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 465,
+          "line_end": 475,
+          "excerpt": "### Step 2: Artifact discovery + typed ingestion (`cite scan`)\n- **Problem:** Discover and type LLM-facing artifacts: globs for the 5 v1 types (incl. memory dirs under `C:/Users/x/.claude/projects/*/memory/`, and `.claude/commands/*.md` ingested as `skill`), exclusions (`.venv/`, `node_modules/`, `.git/`, `docs/archived*`, `owned=false` trees via `registry.toml`), pointer detection + resolution (thin-wrapper SKILL.md, pointer plan.md, CLAUDE.md `@path` imports — mechanics in `docs/research/artifact-type-extensions.md`), frontmatter parsing, `project` resolution, `details_json` population, artifact upsert.\n- **Type:** code\n- **Issue:** #2\n- **Flags:** --reviewers code\n- **Produces:** src/citation_needed/discover.py, scan CLI verb, fixture tests for each artifact type + both pointer shapes\n- **Done when:** `cite scan --project coding-root` against the real workspace registers all 5 types with counts matching spot-check fixtures; a thin-wrapper SKILL.md fixture resolves to its pointed-to file (not zero choices); a CLAUDE.md fixture with an `@path` import inlines a non-artifact target AND records-but-skips a target that is itself a scanned artifact (no double-extraction); a `.claude/commands/*.md` fixture registers as `skill`; integration test invokes the production CLI entry, not internals.\n- **Depends on:** 1\n- **Status:** DONE (2026-07-21)\n\n<!-- autofix-applied: 2026-07-21 -->"
+        }
+      ],
+      "title": "Artifact discovery + typed ingestion (`cite scan`)",
+      "summary": "### Step 2: Artifact discovery + typed ingestion (`cite scan`)\n- **Problem:** Discover and type LLM-facing artifacts: globs for the 5 v1 types (incl. memory dirs under `C:/Users/x/.claude/projects/*/memory/`, and `.claude/commands/*.md` ingested as `skill`), exclusions (`.venv/`, `node_modules/`, `.git/`, `docs/archived*`, `owned=false` trees via `registry.toml`), pointer detection + resolution (thin-wrapper SKILL.md, pointer plan.md, CLAUDE.md `@path` imports — mechanics in `docs/research/artifact-type-extensions.md`), frontmatter parsing, `project` resolution, `details_json` population, artifact upsert.\n- **Type:** code\n- **Issue:** #2\n- **Flags:** --reviewers code\n- **Produces:** src/citation_needed/discover.py, scan CLI verb, fixture tests for each artifact type + both pointer shapes\n- **Done when:** `cite scan --project coding-root` against the real workspace registers all 5 types with counts matching spot-check fixtures; a thin-wrapper SKILL.md fixture resolves to its pointed-to file (not zero choices); a CLAUDE.md fixture with an `@path` import inlines a non-artifact target AND records-but-skips a target that is itself a scanned artifact (no double-extraction); a `.claude/commands/*.md` fixture registers as `skill`; integration test invokes the production CLI entry, not internals.\n- **Depends on:** 1\n- **Status:** DONE (2026-07-21)\n\n<!-- autofix-applied: 2026-07-21 -->",
+      "acceptance": "`cite scan --project coding-root` against the real workspace registers all 5 types with counts matching spot-check fixtures; a thin-wrapper SKILL.md fixture resolves to its pointed-to file (not zero choices); a CLAUDE.md fixture with an `@path` import inlines a non-artifact target AND records-but-skips a target that is itself a scanned artifact (no double-extraction); a `.claude/commands/*.md` fixture registers as `skill`; integration test invokes the production CLI entry, not internals.",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_ac6bcdf486972c7a5854d1fb2dc76fa71be51d0dad02e3339f7542fff24d8d56",
+          "after": "work_34536c5dfc29668147805ad435bdce43bc75697e2829162180e6ce7b9d708e66",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 465,
+              "line_end": 475,
+              "excerpt": "### Step 2: Artifact discovery + typed ingestion (`cite scan`)\n- **Problem:** Discover and type LLM-facing artifacts: globs for the 5 v1 types (incl. memory dirs under `C:/Users/x/.claude/projects/*/memory/`, and `.claude/commands/*.md` ingested as `skill`), exclusions (`.venv/`, `node_modules/`, `.git/`, `docs/archived*`, `owned=false` trees via `registry.toml`), pointer detection + resolution (thin-wrapper SKILL.md, pointer plan.md, CLAUDE.md `@path` imports — mechanics in `docs/research/artifact-type-extensions.md`), frontmatter parsing, `project` resolution, `details_json` population, artifact upsert.\n- **Type:** code\n- **Issue:** #2\n- **Flags:** --reviewers code\n- **Produces:** src/citation_needed/discover.py, scan CLI verb, fixture tests for each artifact type + both pointer shapes\n- **Done when:** `cite scan --project coding-root` against the real workspace registers all 5 types with counts matching spot-check fixtures; a thin-wrapper SKILL.md fixture resolves to its pointed-to file (not zero choices); a CLAUDE.md fixture with an `@path` import inlines a non-artifact target AND records-but-skips a target that is itself a scanned artifact (no double-extraction); a `.claude/commands/*.md` fixture registers as `skill`; integration test invokes the production CLI entry, not internals.\n- **Depends on:** 1\n- **Status:** DONE (2026-07-21)\n\n<!-- autofix-applied: 2026-07-21 -->"
+            }
+          ],
+          "reason": "1"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers code",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "cd32422368d44ac9de3f88324e3a9aa2f326742ccad563ab26bd3d21915a3f35",
+      "heading": "### Step 2: Artifact discovery + typed ingestion (`cite scan`)"
+    },
+    {
+      "work_id": "work_3725e16f6315e5559c979c929f89fa8dd9c1eef37515177f54aa172c7dcae2bd",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 476,
+          "line_end": 486,
+          "excerpt": "### Step 3: Citation resolution + anti-fabrication verifier + FTS5 corpus\n- **Problem:** Build the acquisition pipeline: `resolve.py` (S2 search, Crossref with live rate-header throttling, OpenAlex behind `CITATION_NEEDED_OPENALEX_KEY` failing loud when unset-but-reached), `verify.py` (SSRF-guarded injectable fetch seam, normalized substring quote match, `insert_citation()` sole writer with the NOT NULL resolution record), `corpus.py` (FTS5 external-content + sync triggers, `corpus-search` verb).\n- **Type:** code\n- **Issue:** #3\n- **Flags:** --reviewers deep\n- **Produces:** src/citation_needed/{resolve,verify,corpus}.py, corpus-search CLI verb, unit tests with injectable seam + one live smoke test against a real DOI\n- **Done when:** a fabricated citation (quote absent from fetched text) is structurally rejected with nothing inserted; a real citation (arXiv:2307.03172) round-trips insert→FTS5-hit; SSRF fixtures (loopback/private/redirect-hop) all refuse; live Crossref call throttles from response headers.\n- **Depends on:** 1\n- **Status:** DONE (2026-07-21)\n\n<!-- autofix-applied: 2026-07-21 -->"
+        }
+      ],
+      "title": "Citation resolution + anti-fabrication verifier + FTS5 corpus",
+      "summary": "### Step 3: Citation resolution + anti-fabrication verifier + FTS5 corpus\n- **Problem:** Build the acquisition pipeline: `resolve.py` (S2 search, Crossref with live rate-header throttling, OpenAlex behind `CITATION_NEEDED_OPENALEX_KEY` failing loud when unset-but-reached), `verify.py` (SSRF-guarded injectable fetch seam, normalized substring quote match, `insert_citation()` sole writer with the NOT NULL resolution record), `corpus.py` (FTS5 external-content + sync triggers, `corpus-search` verb).\n- **Type:** code\n- **Issue:** #3\n- **Flags:** --reviewers deep\n- **Produces:** src/citation_needed/{resolve,verify,corpus}.py, corpus-search CLI verb, unit tests with injectable seam + one live smoke test against a real DOI\n- **Done when:** a fabricated citation (quote absent from fetched text) is structurally rejected with nothing inserted; a real citation (arXiv:2307.03172) round-trips insert→FTS5-hit; SSRF fixtures (loopback/private/redirect-hop) all refuse; live Crossref call throttles from response headers.\n- **Depends on:** 1\n- **Status:** DONE (2026-07-21)\n\n<!-- autofix-applied: 2026-07-21 -->",
+      "acceptance": "a fabricated citation (quote absent from fetched text) is structurally rejected with nothing inserted; a real citation (arXiv:2307.03172) round-trips insert→FTS5-hit; SSRF fixtures (loopback/private/redirect-hop) all refuse; live Crossref call throttles from response headers.",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_ac6bcdf486972c7a5854d1fb2dc76fa71be51d0dad02e3339f7542fff24d8d56",
+          "after": "work_3725e16f6315e5559c979c929f89fa8dd9c1eef37515177f54aa172c7dcae2bd",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 476,
+              "line_end": 486,
+              "excerpt": "### Step 3: Citation resolution + anti-fabrication verifier + FTS5 corpus\n- **Problem:** Build the acquisition pipeline: `resolve.py` (S2 search, Crossref with live rate-header throttling, OpenAlex behind `CITATION_NEEDED_OPENALEX_KEY` failing loud when unset-but-reached), `verify.py` (SSRF-guarded injectable fetch seam, normalized substring quote match, `insert_citation()` sole writer with the NOT NULL resolution record), `corpus.py` (FTS5 external-content + sync triggers, `corpus-search` verb).\n- **Type:** code\n- **Issue:** #3\n- **Flags:** --reviewers deep\n- **Produces:** src/citation_needed/{resolve,verify,corpus}.py, corpus-search CLI verb, unit tests with injectable seam + one live smoke test against a real DOI\n- **Done when:** a fabricated citation (quote absent from fetched text) is structurally rejected with nothing inserted; a real citation (arXiv:2307.03172) round-trips insert→FTS5-hit; SSRF fixtures (loopback/private/redirect-hop) all refuse; live Crossref call throttles from response headers.\n- **Depends on:** 1\n- **Status:** DONE (2026-07-21)\n\n<!-- autofix-applied: 2026-07-21 -->"
+            }
+          ],
+          "reason": "1"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers deep",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "37b736033f1d17d4158ecac26297830eeab9c329d03ac829873546061c873fc1",
+      "heading": "### Step 3: Citation resolution + anti-fabrication verifier + FTS5 corpus"
+    },
+    {
+      "work_id": "work_f0b14600dd5fd4200e22e307eafb0b10478fccddad076593e18b06dc900a026f",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 487,
+          "line_end": 497,
+          "excerpt": "### Step 4: Review mechanics + breakdown renderer + interpretation guide\n- **Problem:** `cite review open <path>` (creates review_run, emits prior choice_key/summary pairs as JSON) and `cite review commit` (stdin JSON: choices + labels + citation refs → choice upsert with key-reuse + hash fast path + removed-marking, scores with vote shares, derived classification, composite/band in `review.py` as the single implementation), breakdown renderer, `cite report <path>`, and `docs/interpretation-guide.md` v1 (all §4.4 semantics in prose). The `review open`/`review commit` stdin/stdout JSON contracts are documented as JSON Schema files under `docs/contracts/` — the single source the skills (Step 8) validate against. The extraction template's memory-type guidance encodes the §4.1 per-decision splitting rule (different-verdicts test + over-split guard), and its acceptance fixture includes one multi-decision memory that must yield >1 choice and one single-decision memory that must yield exactly 1.\n- **Type:** code\n- **Issue:** #4\n- **Flags:** --reviewers deep\n- **Produces:** src/citation_needed/{review,breakdown}.py, review/report CLI verbs, docs/contracts/review-open.schema.json, docs/contracts/review-commit.schema.json, docs/interpretation-guide.md, prompts/ v1 templates (extraction, classification)\n- **Done when:** committing the worked-example JSON for `.claude/rules/subagent-economy.md` reproduces the appendix row-set exactly; a second commit with the same choice reworded reuses the choice_key (zero duplicates — the D4 acceptance test); breakdown doc renders with both citation classes labeled; `cite report` surfaces it.\n- **Depends on:** 2, 3\n- **Status:** DONE (2026-07-21)\n\n<!-- autofix-applied: 2026-07-21 -->"
+        }
+      ],
+      "title": "Review mechanics + breakdown renderer + interpretation guide",
+      "summary": "### Step 4: Review mechanics + breakdown renderer + interpretation guide\n- **Problem:** `cite review open <path>` (creates review_run, emits prior choice_key/summary pairs as JSON) and `cite review commit` (stdin JSON: choices + labels + citation refs → choice upsert with key-reuse + hash fast path + removed-marking, scores with vote shares, derived classification, composite/band in `review.py` as the single implementation), breakdown renderer, `cite report <path>`, and `docs/interpretation-guide.md` v1 (all §4.4 semantics in prose). The `review open`/`review commit` stdin/stdout JSON contracts are documented as JSON Schema files under `docs/contracts/` — the single source the skills (Step 8) validate against. The extraction template's memory-type guidance encodes the §4.1 per-decision splitting rule (different-verdicts test + over-split guard), and its acceptance fixture includes one multi-decision memory that must yield >1 choice and one single-decision memory that must yield exactly 1.\n- **Type:** code\n- **Issue:** #4\n- **Flags:** --reviewers deep\n- **Produces:** src/citation_needed/{review,breakdown}.py, review/report CLI verbs, docs/contracts/review-open.schema.json, docs/contracts/review-commit.schema.json, docs/interpretation-guide.md, prompts/ v1 templates (extraction, classification)\n- **Done when:** committing the worked-example JSON for `.claude/rules/subagent-economy.md` reproduces the appendix row-set exactly; a second commit with the same choice reworded reuses the choice_key (zero duplicates — the D4 acceptance test); breakdown doc renders with both citation classes labeled; `cite report` surfaces it.\n- **Depends on:** 2, 3\n- **Status:** DONE (2026-07-21)\n\n<!-- autofix-applied: 2026-07-21 -->",
+      "acceptance": "committing the worked-example JSON for `.claude/rules/subagent-economy.md` reproduces the appendix row-set exactly; a second commit with the same choice reworded reuses the choice_key (zero duplicates — the D4 acceptance test); breakdown doc renders with both citation classes labeled; `cite report` surfaces it.",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_34536c5dfc29668147805ad435bdce43bc75697e2829162180e6ce7b9d708e66",
+          "after": "work_f0b14600dd5fd4200e22e307eafb0b10478fccddad076593e18b06dc900a026f",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 487,
+              "line_end": 497,
+              "excerpt": "### Step 4: Review mechanics + breakdown renderer + interpretation guide\n- **Problem:** `cite review open <path>` (creates review_run, emits prior choice_key/summary pairs as JSON) and `cite review commit` (stdin JSON: choices + labels + citation refs → choice upsert with key-reuse + hash fast path + removed-marking, scores with vote shares, derived classification, composite/band in `review.py` as the single implementation), breakdown renderer, `cite report <path>`, and `docs/interpretation-guide.md` v1 (all §4.4 semantics in prose). The `review open`/`review commit` stdin/stdout JSON contracts are documented as JSON Schema files under `docs/contracts/` — the single source the skills (Step 8) validate against. The extraction template's memory-type guidance encodes the §4.1 per-decision splitting rule (different-verdicts test + over-split guard), and its acceptance fixture includes one multi-decision memory that must yield >1 choice and one single-decision memory that must yield exactly 1.\n- **Type:** code\n- **Issue:** #4\n- **Flags:** --reviewers deep\n- **Produces:** src/citation_needed/{review,breakdown}.py, review/report CLI verbs, docs/contracts/review-open.schema.json, docs/contracts/review-commit.schema.json, docs/interpretation-guide.md, prompts/ v1 templates (extraction, classification)\n- **Done when:** committing the worked-example JSON for `.claude/rules/subagent-economy.md` reproduces the appendix row-set exactly; a second commit with the same choice reworded reuses the choice_key (zero duplicates — the D4 acceptance test); breakdown doc renders with both citation classes labeled; `cite report` surfaces it.\n- **Depends on:** 2, 3\n- **Status:** DONE (2026-07-21)\n\n<!-- autofix-applied: 2026-07-21 -->"
+            }
+          ],
+          "reason": "2"
+        },
+        {
+          "before": "work_3725e16f6315e5559c979c929f89fa8dd9c1eef37515177f54aa172c7dcae2bd",
+          "after": "work_f0b14600dd5fd4200e22e307eafb0b10478fccddad076593e18b06dc900a026f",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 487,
+              "line_end": 497,
+              "excerpt": "### Step 4: Review mechanics + breakdown renderer + interpretation guide\n- **Problem:** `cite review open <path>` (creates review_run, emits prior choice_key/summary pairs as JSON) and `cite review commit` (stdin JSON: choices + labels + citation refs → choice upsert with key-reuse + hash fast path + removed-marking, scores with vote shares, derived classification, composite/band in `review.py` as the single implementation), breakdown renderer, `cite report <path>`, and `docs/interpretation-guide.md` v1 (all §4.4 semantics in prose). The `review open`/`review commit` stdin/stdout JSON contracts are documented as JSON Schema files under `docs/contracts/` — the single source the skills (Step 8) validate against. The extraction template's memory-type guidance encodes the §4.1 per-decision splitting rule (different-verdicts test + over-split guard), and its acceptance fixture includes one multi-decision memory that must yield >1 choice and one single-decision memory that must yield exactly 1.\n- **Type:** code\n- **Issue:** #4\n- **Flags:** --reviewers deep\n- **Produces:** src/citation_needed/{review,breakdown}.py, review/report CLI verbs, docs/contracts/review-open.schema.json, docs/contracts/review-commit.schema.json, docs/interpretation-guide.md, prompts/ v1 templates (extraction, classification)\n- **Done when:** committing the worked-example JSON for `.claude/rules/subagent-economy.md` reproduces the appendix row-set exactly; a second commit with the same choice reworded reuses the choice_key (zero duplicates — the D4 acceptance test); breakdown doc renders with both citation classes labeled; `cite report` surfaces it.\n- **Depends on:** 2, 3\n- **Status:** DONE (2026-07-21)\n\n<!-- autofix-applied: 2026-07-21 -->"
+            }
+          ],
+          "reason": "3"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers deep",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "99e2a403202b8188e425185e172563317f39913eda78b47f0ee4b0f6ec39e57a",
+      "heading": "### Step 4: Review mechanics + breakdown renderer + interpretation guide"
+    },
+    {
+      "work_id": "work_e56d3bc7e5d1def14960facf245a9b162ee83e8537b54af567742e4798fb6859",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 498,
+          "line_end": 507,
+          "excerpt": "### Step 5: Calibration fixtures + gate\n- **Problem:** Freeze the good anchor (snapshot `.claude/rules/code-quality.md` into fixtures/), author the garbage anchor from `docs/research/score-validity.md` §2b **closing its 3 UNVERIFIED rows via real literature searches (or swapping those choices)** with the SYNTHETIC banner intact, and build `calibrate.py`: throwaway-DB copy, the 4 gate assertions (65/35/40/shape), parse-fail >5% ABORT, fingerprint cache (prompt hash, resolved model id, corpus fingerprint, schema version, 30-day advisory), and `review open` hard-refusal without a valid cached calibration.\n- **Type:** code\n- **Issue:** #5\n- **Flags:** --reviewers deep\n- **Produces:** fixtures/calibration/*.md, src/citation_needed/calibrate.py, calibrate CLI verbs, tests incl. a red-on-garbage self-test (a deliberately broken scorer must fail the gate)\n- **Done when:** gate goes red when fed inverted anchor labels (self-test); `cite review open` refuses with a loud message when no valid calibration is cached or any fingerprint is stale; a calibration run leaves the real DB byte-identical (poisoning test); all 5 garbage-anchor choices carry a verified citation or documented search.\n- **Depends on:** 4\n- **Status:** DONE (2026-07-21)\n"
+        }
+      ],
+      "title": "Calibration fixtures + gate",
+      "summary": "### Step 5: Calibration fixtures + gate\n- **Problem:** Freeze the good anchor (snapshot `.claude/rules/code-quality.md` into fixtures/), author the garbage anchor from `docs/research/score-validity.md` §2b **closing its 3 UNVERIFIED rows via real literature searches (or swapping those choices)** with the SYNTHETIC banner intact, and build `calibrate.py`: throwaway-DB copy, the 4 gate assertions (65/35/40/shape), parse-fail >5% ABORT, fingerprint cache (prompt hash, resolved model id, corpus fingerprint, schema version, 30-day advisory), and `review open` hard-refusal without a valid cached calibration.\n- **Type:** code\n- **Issue:** #5\n- **Flags:** --reviewers deep\n- **Produces:** fixtures/calibration/*.md, src/citation_needed/calibrate.py, calibrate CLI verbs, tests incl. a red-on-garbage self-test (a deliberately broken scorer must fail the gate)\n- **Done when:** gate goes red when fed inverted anchor labels (self-test); `cite review open` refuses with a loud message when no valid calibration is cached or any fingerprint is stale; a calibration run leaves the real DB byte-identical (poisoning test); all 5 garbage-anchor choices carry a verified citation or documented search.\n- **Depends on:** 4\n- **Status:** DONE (2026-07-21)\n",
+      "acceptance": "gate goes red when fed inverted anchor labels (self-test); `cite review open` refuses with a loud message when no valid calibration is cached or any fingerprint is stale; a calibration run leaves the real DB byte-identical (poisoning test); all 5 garbage-anchor choices carry a verified citation or documented search.",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_f0b14600dd5fd4200e22e307eafb0b10478fccddad076593e18b06dc900a026f",
+          "after": "work_e56d3bc7e5d1def14960facf245a9b162ee83e8537b54af567742e4798fb6859",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 498,
+              "line_end": 507,
+              "excerpt": "### Step 5: Calibration fixtures + gate\n- **Problem:** Freeze the good anchor (snapshot `.claude/rules/code-quality.md` into fixtures/), author the garbage anchor from `docs/research/score-validity.md` §2b **closing its 3 UNVERIFIED rows via real literature searches (or swapping those choices)** with the SYNTHETIC banner intact, and build `calibrate.py`: throwaway-DB copy, the 4 gate assertions (65/35/40/shape), parse-fail >5% ABORT, fingerprint cache (prompt hash, resolved model id, corpus fingerprint, schema version, 30-day advisory), and `review open` hard-refusal without a valid cached calibration.\n- **Type:** code\n- **Issue:** #5\n- **Flags:** --reviewers deep\n- **Produces:** fixtures/calibration/*.md, src/citation_needed/calibrate.py, calibrate CLI verbs, tests incl. a red-on-garbage self-test (a deliberately broken scorer must fail the gate)\n- **Done when:** gate goes red when fed inverted anchor labels (self-test); `cite review open` refuses with a loud message when no valid calibration is cached or any fingerprint is stale; a calibration run leaves the real DB byte-identical (poisoning test); all 5 garbage-anchor choices carry a verified citation or documented search.\n- **Depends on:** 4\n- **Status:** DONE (2026-07-21)\n"
+            }
+          ],
+          "reason": "4"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers deep",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "a633f8e0373dda787fcd1b69d16bbba02ddfcdc0eb8f283913f9c2d57b3e921f",
+      "heading": "### Step 5: Calibration fixtures + gate"
+    },
+    {
+      "work_id": "work_bc2a2870c87241ad8962b9d031ce056403e649d45f411cd33c6a5031e52010dd",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 508,
+          "line_end": 517,
+          "excerpt": "### Step 6: Distill engine + queue triage verbs\n- **Problem:** `distill.py`: generate trim/rewrite proposals where every proposal carries citation ids or a documented absence (`literature_searched=1, literature_found=0`), rank via `(1−composite/100) × load_weight`, plus `cite queue list` and `cite queue resolve <id> --keep|--cut|--rewrite` recording operator + timestamp.\n- **Type:** code\n- **Issue:** #6\n- **Flags:** --reviewers code\n- **Produces:** src/citation_needed/distill.py, queue CLI verbs, prompts/ distill template, tests\n- **Done when:** an unsupported claude_md choice outranks an equally-unsupported skill choice (load-weight test); a well-supported choice yields no queue row; resolve round-trips status + resolved_by; justification NOT NULL enforced.\n- **Depends on:** 4\n- **Status:** DONE (2026-07-21)\n"
+        }
+      ],
+      "title": "Distill engine + queue triage verbs",
+      "summary": "### Step 6: Distill engine + queue triage verbs\n- **Problem:** `distill.py`: generate trim/rewrite proposals where every proposal carries citation ids or a documented absence (`literature_searched=1, literature_found=0`), rank via `(1−composite/100) × load_weight`, plus `cite queue list` and `cite queue resolve <id> --keep|--cut|--rewrite` recording operator + timestamp.\n- **Type:** code\n- **Issue:** #6\n- **Flags:** --reviewers code\n- **Produces:** src/citation_needed/distill.py, queue CLI verbs, prompts/ distill template, tests\n- **Done when:** an unsupported claude_md choice outranks an equally-unsupported skill choice (load-weight test); a well-supported choice yields no queue row; resolve round-trips status + resolved_by; justification NOT NULL enforced.\n- **Depends on:** 4\n- **Status:** DONE (2026-07-21)\n",
+      "acceptance": "an unsupported claude_md choice outranks an equally-unsupported skill choice (load-weight test); a well-supported choice yields no queue row; resolve round-trips status + resolved_by; justification NOT NULL enforced.",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_f0b14600dd5fd4200e22e307eafb0b10478fccddad076593e18b06dc900a026f",
+          "after": "work_bc2a2870c87241ad8962b9d031ce056403e649d45f411cd33c6a5031e52010dd",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 508,
+              "line_end": 517,
+              "excerpt": "### Step 6: Distill engine + queue triage verbs\n- **Problem:** `distill.py`: generate trim/rewrite proposals where every proposal carries citation ids or a documented absence (`literature_searched=1, literature_found=0`), rank via `(1−composite/100) × load_weight`, plus `cite queue list` and `cite queue resolve <id> --keep|--cut|--rewrite` recording operator + timestamp.\n- **Type:** code\n- **Issue:** #6\n- **Flags:** --reviewers code\n- **Produces:** src/citation_needed/distill.py, queue CLI verbs, prompts/ distill template, tests\n- **Done when:** an unsupported claude_md choice outranks an equally-unsupported skill choice (load-weight test); a well-supported choice yields no queue row; resolve round-trips status + resolved_by; justification NOT NULL enforced.\n- **Depends on:** 4\n- **Status:** DONE (2026-07-21)\n"
+            }
+          ],
+          "reason": "4"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers code",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "92a60cdaabd4ff44cebeab653698925b343c488b52dc27c77d7761a9502fa666",
+      "heading": "### Step 6: Distill engine + queue triage verbs"
+    },
+    {
+      "work_id": "work_44b9d51fea86a0bc74873ba49c397fa5fc6d8a3cf3709dc997c65640970d8fa7",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 518,
+          "line_end": 527,
+          "excerpt": "### Step 7: Seed corpus + provenance\n- **Problem:** Build the tracked CC0 seed corpus from the Phase-0 verified citations — Crossref-sourced fields (no abstracts) + OpenAlex-sourced rows only; S2-derived entries re-derived through Crossref/OpenAlex or excluded — with `seed/PROVENANCE.md` naming per-source license terms, and an idempotent `cite seed import`.\n- **Type:** code\n- **Issue:** #7\n- **Flags:** --reviewers code\n- **Produces:** seed/seed_citations.jsonl, seed/PROVENANCE.md, seed import CLI verb, tests\n- **Done when:** fresh DB + `seed import` twice → no duplicates; FTS5 `corpus-search \"lost in the middle\"` hits the seeded row; PROVENANCE.md lists every source with its license basis; zero S2-attributed rows present.\n- **Depends on:** 3\n- **Status:** DONE (2026-08-09)\n"
+        }
+      ],
+      "title": "Seed corpus + provenance",
+      "summary": "### Step 7: Seed corpus + provenance\n- **Problem:** Build the tracked CC0 seed corpus from the Phase-0 verified citations — Crossref-sourced fields (no abstracts) + OpenAlex-sourced rows only; S2-derived entries re-derived through Crossref/OpenAlex or excluded — with `seed/PROVENANCE.md` naming per-source license terms, and an idempotent `cite seed import`.\n- **Type:** code\n- **Issue:** #7\n- **Flags:** --reviewers code\n- **Produces:** seed/seed_citations.jsonl, seed/PROVENANCE.md, seed import CLI verb, tests\n- **Done when:** fresh DB + `seed import` twice → no duplicates; FTS5 `corpus-search \"lost in the middle\"` hits the seeded row; PROVENANCE.md lists every source with its license basis; zero S2-attributed rows present.\n- **Depends on:** 3\n- **Status:** DONE (2026-08-09)\n",
+      "acceptance": "fresh DB + `seed import` twice → no duplicates; FTS5 `corpus-search \"lost in the middle\"` hits the seeded row; PROVENANCE.md lists every source with its license basis; zero S2-attributed rows present.",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_3725e16f6315e5559c979c929f89fa8dd9c1eef37515177f54aa172c7dcae2bd",
+          "after": "work_44b9d51fea86a0bc74873ba49c397fa5fc6d8a3cf3709dc997c65640970d8fa7",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 518,
+              "line_end": 527,
+              "excerpt": "### Step 7: Seed corpus + provenance\n- **Problem:** Build the tracked CC0 seed corpus from the Phase-0 verified citations — Crossref-sourced fields (no abstracts) + OpenAlex-sourced rows only; S2-derived entries re-derived through Crossref/OpenAlex or excluded — with `seed/PROVENANCE.md` naming per-source license terms, and an idempotent `cite seed import`.\n- **Type:** code\n- **Issue:** #7\n- **Flags:** --reviewers code\n- **Produces:** seed/seed_citations.jsonl, seed/PROVENANCE.md, seed import CLI verb, tests\n- **Done when:** fresh DB + `seed import` twice → no duplicates; FTS5 `corpus-search \"lost in the middle\"` hits the seeded row; PROVENANCE.md lists every source with its license basis; zero S2-attributed rows present.\n- **Depends on:** 3\n- **Status:** DONE (2026-08-09)\n"
+            }
+          ],
+          "reason": "3"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers code",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "da5335d631b09164797ff161837f24a4c1b27b991a5827c1da8c8719837e6170",
+      "heading": "### Step 7: Seed corpus + provenance"
+    },
+    {
+      "work_id": "work_1e3044dedb249146e9798285eedd2f7963c71551ed8f47df716326f5cde00e33",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 528,
+          "line_end": 537,
+          "excerpt": "### Step 8: The four skills (two-repo step)\n- **Problem:** Author `dev/.claude/skills/citation-{review,distill,sweep,triage}/SKILL.md` as thin wrappers over `uv run --project citation-needed cite <verb>` (observatory-doctor idiom): citation-review embeds the §4.1 flow + calibrate mode + stdin JSON contracts; citation-sweep embeds near-duplicate clustering + per-artifact subagent fan-out with terse-verdict returns (subagent-economy.md); citation-distill and citation-triage wrap their verbs. NOTE: SKILL.md files land in the CODING-ROOT repo; any engine tweaks land in citation-needed — two scoped commits, wrong-dir guard applied per repo.\n- **Type:** code\n- **Issue:** #8\n- **Flags:** --reviewers code\n- **Produces:** 4 SKILL.md files under dev/.claude/skills/, minor CLI adjustments if contract gaps surface\n- **Done when:** each SKILL.md's embedded commands grep-match real CLI verbs (`cite --help` output); frontmatter is the standard 3 fields spelled `user-invocable` (no `argument:`/`user-invokable` drift per `corpus-survey.md` §8); junction-exposure verified (`ls ~/.claude/skills/citation-review/`).\n- **Depends on:** 4, 5, 6\n- **Status:** DONE (2026-08-09)\n"
+        }
+      ],
+      "title": "The four skills (two-repo step)",
+      "summary": "### Step 8: The four skills (two-repo step)\n- **Problem:** Author `dev/.claude/skills/citation-{review,distill,sweep,triage}/SKILL.md` as thin wrappers over `uv run --project citation-needed cite <verb>` (observatory-doctor idiom): citation-review embeds the §4.1 flow + calibrate mode + stdin JSON contracts; citation-sweep embeds near-duplicate clustering + per-artifact subagent fan-out with terse-verdict returns (subagent-economy.md); citation-distill and citation-triage wrap their verbs. NOTE: SKILL.md files land in the CODING-ROOT repo; any engine tweaks land in citation-needed — two scoped commits, wrong-dir guard applied per repo.\n- **Type:** code\n- **Issue:** #8\n- **Flags:** --reviewers code\n- **Produces:** 4 SKILL.md files under dev/.claude/skills/, minor CLI adjustments if contract gaps surface\n- **Done when:** each SKILL.md's embedded commands grep-match real CLI verbs (`cite --help` output); frontmatter is the standard 3 fields spelled `user-invocable` (no `argument:`/`user-invokable` drift per `corpus-survey.md` §8); junction-exposure verified (`ls ~/.claude/skills/citation-review/`).\n- **Depends on:** 4, 5, 6\n- **Status:** DONE (2026-08-09)\n",
+      "acceptance": "each SKILL.md's embedded commands grep-match real CLI verbs (`cite --help` output); frontmatter is the standard 3 fields spelled `user-invocable` (no `argument:`/`user-invokable` drift per `corpus-survey.md` §8); junction-exposure verified (`ls ~/.claude/skills/citation-review/`).",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_f0b14600dd5fd4200e22e307eafb0b10478fccddad076593e18b06dc900a026f",
+          "after": "work_1e3044dedb249146e9798285eedd2f7963c71551ed8f47df716326f5cde00e33",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 528,
+              "line_end": 537,
+              "excerpt": "### Step 8: The four skills (two-repo step)\n- **Problem:** Author `dev/.claude/skills/citation-{review,distill,sweep,triage}/SKILL.md` as thin wrappers over `uv run --project citation-needed cite <verb>` (observatory-doctor idiom): citation-review embeds the §4.1 flow + calibrate mode + stdin JSON contracts; citation-sweep embeds near-duplicate clustering + per-artifact subagent fan-out with terse-verdict returns (subagent-economy.md); citation-distill and citation-triage wrap their verbs. NOTE: SKILL.md files land in the CODING-ROOT repo; any engine tweaks land in citation-needed — two scoped commits, wrong-dir guard applied per repo.\n- **Type:** code\n- **Issue:** #8\n- **Flags:** --reviewers code\n- **Produces:** 4 SKILL.md files under dev/.claude/skills/, minor CLI adjustments if contract gaps surface\n- **Done when:** each SKILL.md's embedded commands grep-match real CLI verbs (`cite --help` output); frontmatter is the standard 3 fields spelled `user-invocable` (no `argument:`/`user-invokable` drift per `corpus-survey.md` §8); junction-exposure verified (`ls ~/.claude/skills/citation-review/`).\n- **Depends on:** 4, 5, 6\n- **Status:** DONE (2026-08-09)\n"
+            }
+          ],
+          "reason": "4"
+        },
+        {
+          "before": "work_e56d3bc7e5d1def14960facf245a9b162ee83e8537b54af567742e4798fb6859",
+          "after": "work_1e3044dedb249146e9798285eedd2f7963c71551ed8f47df716326f5cde00e33",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 528,
+              "line_end": 537,
+              "excerpt": "### Step 8: The four skills (two-repo step)\n- **Problem:** Author `dev/.claude/skills/citation-{review,distill,sweep,triage}/SKILL.md` as thin wrappers over `uv run --project citation-needed cite <verb>` (observatory-doctor idiom): citation-review embeds the §4.1 flow + calibrate mode + stdin JSON contracts; citation-sweep embeds near-duplicate clustering + per-artifact subagent fan-out with terse-verdict returns (subagent-economy.md); citation-distill and citation-triage wrap their verbs. NOTE: SKILL.md files land in the CODING-ROOT repo; any engine tweaks land in citation-needed — two scoped commits, wrong-dir guard applied per repo.\n- **Type:** code\n- **Issue:** #8\n- **Flags:** --reviewers code\n- **Produces:** 4 SKILL.md files under dev/.claude/skills/, minor CLI adjustments if contract gaps surface\n- **Done when:** each SKILL.md's embedded commands grep-match real CLI verbs (`cite --help` output); frontmatter is the standard 3 fields spelled `user-invocable` (no `argument:`/`user-invokable` drift per `corpus-survey.md` §8); junction-exposure verified (`ls ~/.claude/skills/citation-review/`).\n- **Depends on:** 4, 5, 6\n- **Status:** DONE (2026-08-09)\n"
+            }
+          ],
+          "reason": "5"
+        },
+        {
+          "before": "work_bc2a2870c87241ad8962b9d031ce056403e649d45f411cd33c6a5031e52010dd",
+          "after": "work_1e3044dedb249146e9798285eedd2f7963c71551ed8f47df716326f5cde00e33",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 528,
+              "line_end": 537,
+              "excerpt": "### Step 8: The four skills (two-repo step)\n- **Problem:** Author `dev/.claude/skills/citation-{review,distill,sweep,triage}/SKILL.md` as thin wrappers over `uv run --project citation-needed cite <verb>` (observatory-doctor idiom): citation-review embeds the §4.1 flow + calibrate mode + stdin JSON contracts; citation-sweep embeds near-duplicate clustering + per-artifact subagent fan-out with terse-verdict returns (subagent-economy.md); citation-distill and citation-triage wrap their verbs. NOTE: SKILL.md files land in the CODING-ROOT repo; any engine tweaks land in citation-needed — two scoped commits, wrong-dir guard applied per repo.\n- **Type:** code\n- **Issue:** #8\n- **Flags:** --reviewers code\n- **Produces:** 4 SKILL.md files under dev/.claude/skills/, minor CLI adjustments if contract gaps surface\n- **Done when:** each SKILL.md's embedded commands grep-match real CLI verbs (`cite --help` output); frontmatter is the standard 3 fields spelled `user-invocable` (no `argument:`/`user-invokable` drift per `corpus-survey.md` §8); junction-exposure verified (`ls ~/.claude/skills/citation-review/`).\n- **Depends on:** 4, 5, 6\n- **Status:** DONE (2026-08-09)\n"
+            }
+          ],
+          "reason": "6"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers code",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "e5859f3d1ee9ed0adf60eec8235537a610bfdd6b7af710b3617b9781168bed62",
+      "heading": "### Step 8: The four skills (two-repo step)"
+    },
+    {
+      "work_id": "work_54275c90df1794bab22642b3f9e1a8fdbf31bbfcbd695e227d1783dfe0aea4d9",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 538,
+          "line_end": 555,
+          "excerpt": "### Step 9: End-to-end smoke — calibrate, then one real review\n- **Problem:** Exercise the full production path once with real components (no mocks): run calibration through the skill+CLI pipeline to a green gate, then a real `/citation-review` of `.claude/rules/subagent-economy.md` with live corpus-first lookup and live web verification.\n- **Type:** code\n- **Issue:** #9\n- **Flags:** --reviewers code\n- **Produces:** a real breakdown doc, real DB rows, a short smoke report in docs/\n- **Done when:** calibration passes the 4-assertion gate on real anchors; the review yields ≥2 choices with both citation classes represented; `git status` of the coding-root repo shows zero modifications to the reviewed target; `cite report` renders the result.\n- **Depends on:** 5, 8\n- **Status:** DONE (2026-08-09) — initialized the real local corpus (4 CC0 seed records),\n  scanned the coding-root, and searched the corpus before reviewing\n  `.claude/rules/subagent-economy.md` (no subagent-economy hit). Three independent live\n  Claude Code judgments drove the frozen calibration anchors: good composite 95.0,\n  garbage composite 0.0, margin 95.0, and 0.0% parse failures. The real review committed\n  run #1 with two evidence-backed choices, verified internal workspace evidence, and one\n  server-side verified external web source; it rendered a 100.0/100 strong breakdown.\n  The reviewed target remained unmodified. Recalibration after the new citations produced\n  a valid current corpus fingerprint (6:6); see `docs/smoke-review-1.md`.\n"
+        }
+      ],
+      "title": "End-to-end smoke — calibrate, then one real review",
+      "summary": "### Step 9: End-to-end smoke — calibrate, then one real review\n- **Problem:** Exercise the full production path once with real components (no mocks): run calibration through the skill+CLI pipeline to a green gate, then a real `/citation-review` of `.claude/rules/subagent-economy.md` with live corpus-first lookup and live web verification.\n- **Type:** code\n- **Issue:** #9\n- **Flags:** --reviewers code\n- **Produces:** a real breakdown doc, real DB rows, a short smoke report in docs/\n- **Done when:** calibration passes the 4-assertion gate on real anchors; the review yields ≥2 choices with both citation classes represented; `git status` of the coding-root repo shows zero modifications to the reviewed target; `cite report` renders the result.\n- **Depends on:** 5, 8\n- **Status:** DONE (2026-08-09) — initialized the real local corpus (4 CC0 seed records),\n  scanned the coding-root, and searched the corpus before reviewing\n  `.claude/rules/subagent-economy.md` (no subagent-economy hit). Three independent live\n  Claude Code judgments drove the frozen calibration anchors: good composite 95.0,\n  garbage composite 0.0, margin 95.0, and 0.0% parse failures. The real review committed\n  run #1 with two evidence-backed choices, verified internal workspace evidence, and one\n  server-side verified external web source; it rendered a 100.0/100 strong breakdown.\n  The reviewed target remained unmodified. Recalibration after the new citations produced\n  a valid current corpus fingerprint (6:6); see `docs/smoke-review-1.md`.\n",
+      "acceptance": "calibration passes the 4-assertion gate on real anchors; the review yields ≥2 choices with both citation classes represented; `git status` of the coding-root repo shows zero modifications to the reviewed target; `cite report` renders the result.",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_e56d3bc7e5d1def14960facf245a9b162ee83e8537b54af567742e4798fb6859",
+          "after": "work_54275c90df1794bab22642b3f9e1a8fdbf31bbfcbd695e227d1783dfe0aea4d9",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 538,
+              "line_end": 555,
+              "excerpt": "### Step 9: End-to-end smoke — calibrate, then one real review\n- **Problem:** Exercise the full production path once with real components (no mocks): run calibration through the skill+CLI pipeline to a green gate, then a real `/citation-review` of `.claude/rules/subagent-economy.md` with live corpus-first lookup and live web verification.\n- **Type:** code\n- **Issue:** #9\n- **Flags:** --reviewers code\n- **Produces:** a real breakdown doc, real DB rows, a short smoke report in docs/\n- **Done when:** calibration passes the 4-assertion gate on real anchors; the review yields ≥2 choices with both citation classes represented; `git status` of the coding-root repo shows zero modifications to the reviewed target; `cite report` renders the result.\n- **Depends on:** 5, 8\n- **Status:** DONE (2026-08-09) — initialized the real local corpus (4 CC0 seed records),\n  scanned the coding-root, and searched the corpus before reviewing\n  `.claude/rules/subagent-economy.md` (no subagent-economy hit). Three independent live\n  Claude Code judgments drove the frozen calibration anchors: good composite 95.0,\n  garbage composite 0.0, margin 95.0, and 0.0% parse failures. The real review committed\n  run #1 with two evidence-backed choices, verified internal workspace evidence, and one\n  server-side verified external web source; it rendered a 100.0/100 strong breakdown.\n  The reviewed target remained unmodified. Recalibration after the new citations produced\n  a valid current corpus fingerprint (6:6); see `docs/smoke-review-1.md`.\n"
+            }
+          ],
+          "reason": "5"
+        },
+        {
+          "before": "work_1e3044dedb249146e9798285eedd2f7963c71551ed8f47df716326f5cde00e33",
+          "after": "work_54275c90df1794bab22642b3f9e1a8fdbf31bbfcbd695e227d1783dfe0aea4d9",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 538,
+              "line_end": 555,
+              "excerpt": "### Step 9: End-to-end smoke — calibrate, then one real review\n- **Problem:** Exercise the full production path once with real components (no mocks): run calibration through the skill+CLI pipeline to a green gate, then a real `/citation-review` of `.claude/rules/subagent-economy.md` with live corpus-first lookup and live web verification.\n- **Type:** code\n- **Issue:** #9\n- **Flags:** --reviewers code\n- **Produces:** a real breakdown doc, real DB rows, a short smoke report in docs/\n- **Done when:** calibration passes the 4-assertion gate on real anchors; the review yields ≥2 choices with both citation classes represented; `git status` of the coding-root repo shows zero modifications to the reviewed target; `cite report` renders the result.\n- **Depends on:** 5, 8\n- **Status:** DONE (2026-08-09) — initialized the real local corpus (4 CC0 seed records),\n  scanned the coding-root, and searched the corpus before reviewing\n  `.claude/rules/subagent-economy.md` (no subagent-economy hit). Three independent live\n  Claude Code judgments drove the frozen calibration anchors: good composite 95.0,\n  garbage composite 0.0, margin 95.0, and 0.0% parse failures. The real review committed\n  run #1 with two evidence-backed choices, verified internal workspace evidence, and one\n  server-side verified external web source; it rendered a 100.0/100 strong breakdown.\n  The reviewed target remained unmodified. Recalibration after the new citations produced\n  a valid current corpus fingerprint (6:6); see `docs/smoke-review-1.md`.\n"
+            }
+          ],
+          "reason": "8"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers code",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "26b4ea68fd112a91c8bf84399878462ae54a13974ca7fae043239dd7d242bc82",
+      "heading": "### Step 9: End-to-end smoke — calibrate, then one real review"
+    },
+    {
+      "work_id": "work_ec68d1a6077db09848b4286c4d2ceac9bc608aca4bb833890eadc3846b20fc41",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 556,
+          "line_end": 574,
+          "excerpt": "### Step 10: Observation run — small real sweep + findings\n- **Problem:** Run `/citation-sweep` over one bounded real scope (the 13 root `.claude/rules/*.md` files) with per-artifact subagent fan-out; capture an observation findings doc: wall-clock + per-API call counts and failures, near-duplicate cluster ratio, corpus-hit-rate curve across the pass, queue output sanity. File issues for anything surfaced rather than fixing in-step.\n- **Type:** code\n- **Issue:** #10\n- **Flags:** --reviewers code\n- **Produces:** docs/observation-run-1.md, distill_queue rows for the rules corpus\n- **Done when:** the sweep completes all 13 artifacts (or documents each abstention); findings doc contains the four metric families; zero unhandled exceptions (failures are recorded outcomes, not crashes); ranked queue is non-empty and ordered by the §4.4 rank formula.\n- **Depends on:** 6, 9\n- **Status:** DONE (2026-08-09) — completed a bounded live sweep of all 13 root\n  `.claude/rules/*.md` artifacts with current review runs #2–#14, no target edits, and\n  a valid post-run calibration fingerprint. The 13-query corpus curve yielded one hit\n  (7.69%); the exact dry-run-block search had no direct hit and only tangential web\n  results, yielding one ranked `trim` queue row (rank 2.25). The findings record the\n  model/API counts, controlled validation refusal, duplicate check, and queue evidence:\n  `docs/observation-run-1.md`. Classifier evidence-boundary follow-up: #15.\n\n### Manual Steps\n(These run after /build-phase completes. Operator drives.)\n"
+        }
+      ],
+      "title": "Observation run — small real sweep + findings",
+      "summary": "### Step 10: Observation run — small real sweep + findings\n- **Problem:** Run `/citation-sweep` over one bounded real scope (the 13 root `.claude/rules/*.md` files) with per-artifact subagent fan-out; capture an observation findings doc: wall-clock + per-API call counts and failures, near-duplicate cluster ratio, corpus-hit-rate curve across the pass, queue output sanity. File issues for anything surfaced rather than fixing in-step.\n- **Type:** code\n- **Issue:** #10\n- **Flags:** --reviewers code\n- **Produces:** docs/observation-run-1.md, distill_queue rows for the rules corpus\n- **Done when:** the sweep completes all 13 artifacts (or documents each abstention); findings doc contains the four metric families; zero unhandled exceptions (failures are recorded outcomes, not crashes); ranked queue is non-empty and ordered by the §4.4 rank formula.\n- **Depends on:** 6, 9\n- **Status:** DONE (2026-08-09) — completed a bounded live sweep of all 13 root\n  `.claude/rules/*.md` artifacts with current review runs #2–#14, no target edits, and\n  a valid post-run calibration fingerprint. The 13-query corpus curve yielded one hit\n  (7.69%); the exact dry-run-block search had no direct hit and only tangential web\n  results, yielding one ranked `trim` queue row (rank 2.25). The findings record the\n  model/API counts, controlled validation refusal, duplicate check, and queue evidence:\n  `docs/observation-run-1.md`. Classifier evidence-boundary follow-up: #15.\n\n### Manual Steps\n(These run after /build-phase completes. Operator drives.)\n",
+      "acceptance": "the sweep completes all 13 artifacts (or documents each abstention); findings doc contains the four metric families; zero unhandled exceptions (failures are recorded outcomes, not crashes); ranked queue is non-empty and ordered by the §4.4 rank formula.",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_bc2a2870c87241ad8962b9d031ce056403e649d45f411cd33c6a5031e52010dd",
+          "after": "work_ec68d1a6077db09848b4286c4d2ceac9bc608aca4bb833890eadc3846b20fc41",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 556,
+              "line_end": 574,
+              "excerpt": "### Step 10: Observation run — small real sweep + findings\n- **Problem:** Run `/citation-sweep` over one bounded real scope (the 13 root `.claude/rules/*.md` files) with per-artifact subagent fan-out; capture an observation findings doc: wall-clock + per-API call counts and failures, near-duplicate cluster ratio, corpus-hit-rate curve across the pass, queue output sanity. File issues for anything surfaced rather than fixing in-step.\n- **Type:** code\n- **Issue:** #10\n- **Flags:** --reviewers code\n- **Produces:** docs/observation-run-1.md, distill_queue rows for the rules corpus\n- **Done when:** the sweep completes all 13 artifacts (or documents each abstention); findings doc contains the four metric families; zero unhandled exceptions (failures are recorded outcomes, not crashes); ranked queue is non-empty and ordered by the §4.4 rank formula.\n- **Depends on:** 6, 9\n- **Status:** DONE (2026-08-09) — completed a bounded live sweep of all 13 root\n  `.claude/rules/*.md` artifacts with current review runs #2–#14, no target edits, and\n  a valid post-run calibration fingerprint. The 13-query corpus curve yielded one hit\n  (7.69%); the exact dry-run-block search had no direct hit and only tangential web\n  results, yielding one ranked `trim` queue row (rank 2.25). The findings record the\n  model/API counts, controlled validation refusal, duplicate check, and queue evidence:\n  `docs/observation-run-1.md`. Classifier evidence-boundary follow-up: #15.\n\n### Manual Steps\n(These run after /build-phase completes. Operator drives.)\n"
+            }
+          ],
+          "reason": "6"
+        },
+        {
+          "before": "work_54275c90df1794bab22642b3f9e1a8fdbf31bbfcbd695e227d1783dfe0aea4d9",
+          "after": "work_ec68d1a6077db09848b4286c4d2ceac9bc608aca4bb833890eadc3846b20fc41",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 556,
+              "line_end": 574,
+              "excerpt": "### Step 10: Observation run — small real sweep + findings\n- **Problem:** Run `/citation-sweep` over one bounded real scope (the 13 root `.claude/rules/*.md` files) with per-artifact subagent fan-out; capture an observation findings doc: wall-clock + per-API call counts and failures, near-duplicate cluster ratio, corpus-hit-rate curve across the pass, queue output sanity. File issues for anything surfaced rather than fixing in-step.\n- **Type:** code\n- **Issue:** #10\n- **Flags:** --reviewers code\n- **Produces:** docs/observation-run-1.md, distill_queue rows for the rules corpus\n- **Done when:** the sweep completes all 13 artifacts (or documents each abstention); findings doc contains the four metric families; zero unhandled exceptions (failures are recorded outcomes, not crashes); ranked queue is non-empty and ordered by the §4.4 rank formula.\n- **Depends on:** 6, 9\n- **Status:** DONE (2026-08-09) — completed a bounded live sweep of all 13 root\n  `.claude/rules/*.md` artifacts with current review runs #2–#14, no target edits, and\n  a valid post-run calibration fingerprint. The 13-query corpus curve yielded one hit\n  (7.69%); the exact dry-run-block search had no direct hit and only tangential web\n  results, yielding one ranked `trim` queue row (rank 2.25). The findings record the\n  model/API counts, controlled validation refusal, duplicate check, and queue evidence:\n  `docs/observation-run-1.md`. Classifier evidence-boundary follow-up: #15.\n\n### Manual Steps\n(These run after /build-phase completes. Operator drives.)\n"
+            }
+          ],
+          "reason": "9"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers code",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "444c36ef89bc0e3d694f4ec453edad152da4a9d60086ee8e6063c304112416f5",
+      "heading": "### Step 10: Observation run — small real sweep + findings"
+    },
+    {
+      "work_id": "work_221e8fa1b26b1a4bcc82355302ef693283a9b61c5b3221c96fc52d34e67466d1",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 575,
+          "line_end": 591,
+          "excerpt": "### Step M1: Operator UAT — read one breakdown against its target\n- **Source step:** Step 9\n- **Issue:** #11\n- **Commands:**\n  ```powershell\n  uv run --project citation-needed cite report .claude/rules/subagent-economy.md\n  # then open the breakdown doc path it prints, side-by-side with the rule file\n  ```\n- **What to look for:**\n  | Check | Expected outcome |\n  |---|---|\n  | Choices extracted | Match the rule's actual discrete decisions (≈2 for this file), no over-fragmenting |\n  | Citation labels | Every external citation resolvable (click one URL); internal citations carry path:line; classes clearly labeled |\n  | No-literature rows | Recorded as searched-and-empty with the query strings shown, not blank |\n  | Scores vs guide | Composite + band read sensibly against docs/interpretation-guide.md |\n  | Target untouched | `git diff .claude/rules/subagent-economy.md` is empty |\n"
+        }
+      ],
+      "title": "Operator UAT — read one breakdown against its target",
+      "summary": "### Step M1: Operator UAT — read one breakdown against its target\n- **Source step:** Step 9\n- **Issue:** #11\n- **Commands:**\n  ```powershell\n  uv run --project citation-needed cite report .claude/rules/subagent-economy.md\n  # then open the breakdown doc path it prints, side-by-side with the rule file\n  ```\n- **What to look for:**\n  | Check | Expected outcome |\n  |---|---|\n  | Choices extracted | Match the rule's actual discrete decisions (≈2 for this file), no over-fragmenting |\n  | Citation labels | Every external citation resolvable (click one URL); internal citations carry path:line; classes clearly labeled |\n  | No-literature rows | Recorded as searched-and-empty with the query strings shown, not blank |\n  | Scores vs guide | Composite + band read sensibly against docs/interpretation-guide.md |\n  | Target untouched | `git diff .claude/rules/subagent-economy.md` is empty |\n",
+      "acceptance": null,
+      "kind": "task",
+      "status": "unknown",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [],
+      "unresolved_dependencies": [],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": null,
+      "flags": null,
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "1915b7ef45078113116520fe9d642442089232a3deefbe6032fc68f55d5e2961",
+      "heading": "### Step M1: Operator UAT — read one breakdown against its target"
+    },
+    {
+      "work_id": "work_e3516b9d46c0c5b5ea4c32686e2223e7c803d6c9d07122ab936a0c486e999a40",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 592,
+          "line_end": 611,
+          "excerpt": "### Step M2: citation-triage session over the sweep queue\n- **Source step:** Step 10\n- **Issue:** #12\n- **Commands:**\n  ```powershell\n  uv run --project citation-needed cite queue list\n  # then, in a Claude Code session: /citation-triage\n  ```\n- **What to look for:**\n  | Check | Expected outcome |\n  |---|---|\n  | Ranking order | claude_md/rule findings outrank skill/plan findings at equal composite |\n  | Justifications | Every item cites evidence or a documented absence — no bare \"looks trimmable\" |\n  | Resolution round-trip | keep/cut/rewrite decisions persist (`cite queue list` reflects statuses) |\n  | Scope discipline | Nothing in the session offered to edit a target file directly |\n\nPlease run M1 next (after the automated steps complete).\n\n### Feature units and acceptance\n"
+        }
+      ],
+      "title": "citation-triage session over the sweep queue",
+      "summary": "### Step M2: citation-triage session over the sweep queue\n- **Source step:** Step 10\n- **Issue:** #12\n- **Commands:**\n  ```powershell\n  uv run --project citation-needed cite queue list\n  # then, in a Claude Code session: /citation-triage\n  ```\n- **What to look for:**\n  | Check | Expected outcome |\n  |---|---|\n  | Ranking order | claude_md/rule findings outrank skill/plan findings at equal composite |\n  | Justifications | Every item cites evidence or a documented absence — no bare \"looks trimmable\" |\n  | Resolution round-trip | keep/cut/rewrite decisions persist (`cite queue list` reflects statuses) |\n  | Scope discipline | Nothing in the session offered to edit a target file directly |\n\nPlease run M1 next (after the automated steps complete).\n\n### Feature units and acceptance\n",
+      "acceptance": null,
+      "kind": "task",
+      "status": "unknown",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [],
+      "unresolved_dependencies": [],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": null,
+      "flags": null,
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "145331e34f00ba383b426945bac72cc818798bd23a3d2ded2fd229d11dfed7dd",
+      "heading": "### Step M2: citation-triage session over the sweep queue"
+    },
+    {
+      "work_id": "work_b8b4e7022d1f9247e3e242d2d92e76d79a94828e474b4b3654d3e1bfff93ee77",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 612,
+          "line_end": 624,
+          "excerpt": "### Step 11: Overview and readiness JSON\n- **Status:** done (2026-08-09; focused and full verification passed)\n- **Problem:** Replace opaque table counts with a versioned overview that distinguishes uninitialized,\n  initialized-empty, ready, stale, and review-in-progress states and includes recent activity.\n- **Type:** code\n- **Issue:** #17\n- **Flags:** --reviewers code --isolation worktree\n- **Files:** `src/citation_needed/read_queries.py`, `src/citation_needed/models.py`,\n  `src/citation_needed/cli.py`, `tests/test_read_queries.py`, `tests/test_cli.py`\n- **Produces:** overview query/model/CLI and tests\n- **Done when:** empty and populated fixtures render different, truthful states\n- **Depends on:** 7\n"
+        }
+      ],
+      "title": "Overview and readiness JSON",
+      "summary": "### Step 11: Overview and readiness JSON\n- **Status:** done (2026-08-09; focused and full verification passed)\n- **Problem:** Replace opaque table counts with a versioned overview that distinguishes uninitialized,\n  initialized-empty, ready, stale, and review-in-progress states and includes recent activity.\n- **Type:** code\n- **Issue:** #17\n- **Flags:** --reviewers code --isolation worktree\n- **Files:** `src/citation_needed/read_queries.py`, `src/citation_needed/models.py`,\n  `src/citation_needed/cli.py`, `tests/test_read_queries.py`, `tests/test_cli.py`\n- **Produces:** overview query/model/CLI and tests\n- **Done when:** empty and populated fixtures render different, truthful states\n- **Depends on:** 7\n",
+      "acceptance": "empty and populated fixtures render different, truthful states",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_44b9d51fea86a0bc74873ba49c397fa5fc6d8a3cf3709dc997c65640970d8fa7",
+          "after": "work_b8b4e7022d1f9247e3e242d2d92e76d79a94828e474b4b3654d3e1bfff93ee77",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 612,
+              "line_end": 624,
+              "excerpt": "### Step 11: Overview and readiness JSON\n- **Status:** done (2026-08-09; focused and full verification passed)\n- **Problem:** Replace opaque table counts with a versioned overview that distinguishes uninitialized,\n  initialized-empty, ready, stale, and review-in-progress states and includes recent activity.\n- **Type:** code\n- **Issue:** #17\n- **Flags:** --reviewers code --isolation worktree\n- **Files:** `src/citation_needed/read_queries.py`, `src/citation_needed/models.py`,\n  `src/citation_needed/cli.py`, `tests/test_read_queries.py`, `tests/test_cli.py`\n- **Produces:** overview query/model/CLI and tests\n- **Done when:** empty and populated fixtures render different, truthful states\n- **Depends on:** 7\n"
+            }
+          ],
+          "reason": "7"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": [
+        "`src/citation_needed/read_queries.py`",
+        "`src/citation_needed/models.py`"
+      ],
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers code --isolation worktree",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "0e0f22cc91439d91ca1702c8d797daac7baf41254b6177b8ceaa14b965a4bd8a",
+      "heading": "### Step 11: Overview and readiness JSON"
+    },
+    {
+      "work_id": "work_079d1dc36180c036db82c8644939d7bad6920c79037f7d45982723a35b6f4fea",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 625,
+          "line_end": 639,
+          "excerpt": "### Step 12: Skill justification list/detail\n- **Status:** done (2026-08-09; focused and full verification passed)\n- **Problem:** Add deterministic list/show queries for reviewed skills, claims, exact locators,\n  classifications, citation records, documented search absence, review provenance, and\n  exact/ambiguous/missing current-locator status.\n- **Type:** code\n- **Issue:** #18\n- **Flags:** --reviewers deep --isolation worktree\n- **Files:** `src/citation_needed/read_queries.py`, `src/citation_needed/breakdown.py`,\n  `src/citation_needed/models.py`, `src/citation_needed/cli.py`,\n  `tests/test_read_queries.py`, `tests/test_breakdown.py`\n- **Produces:** justify queries/CLI, JSON contract, tests\n- **Done when:** every list ID resolves to detail and every citation maps to a verified DB row\n- **Depends on:** 9, 11\n"
+        }
+      ],
+      "title": "Skill justification list/detail",
+      "summary": "### Step 12: Skill justification list/detail\n- **Status:** done (2026-08-09; focused and full verification passed)\n- **Problem:** Add deterministic list/show queries for reviewed skills, claims, exact locators,\n  classifications, citation records, documented search absence, review provenance, and\n  exact/ambiguous/missing current-locator status.\n- **Type:** code\n- **Issue:** #18\n- **Flags:** --reviewers deep --isolation worktree\n- **Files:** `src/citation_needed/read_queries.py`, `src/citation_needed/breakdown.py`,\n  `src/citation_needed/models.py`, `src/citation_needed/cli.py`,\n  `tests/test_read_queries.py`, `tests/test_breakdown.py`\n- **Produces:** justify queries/CLI, JSON contract, tests\n- **Done when:** every list ID resolves to detail and every citation maps to a verified DB row\n- **Depends on:** 9, 11\n",
+      "acceptance": "every list ID resolves to detail and every citation maps to a verified DB row",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_54275c90df1794bab22642b3f9e1a8fdbf31bbfcbd695e227d1783dfe0aea4d9",
+          "after": "work_079d1dc36180c036db82c8644939d7bad6920c79037f7d45982723a35b6f4fea",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 625,
+              "line_end": 639,
+              "excerpt": "### Step 12: Skill justification list/detail\n- **Status:** done (2026-08-09; focused and full verification passed)\n- **Problem:** Add deterministic list/show queries for reviewed skills, claims, exact locators,\n  classifications, citation records, documented search absence, review provenance, and\n  exact/ambiguous/missing current-locator status.\n- **Type:** code\n- **Issue:** #18\n- **Flags:** --reviewers deep --isolation worktree\n- **Files:** `src/citation_needed/read_queries.py`, `src/citation_needed/breakdown.py`,\n  `src/citation_needed/models.py`, `src/citation_needed/cli.py`,\n  `tests/test_read_queries.py`, `tests/test_breakdown.py`\n- **Produces:** justify queries/CLI, JSON contract, tests\n- **Done when:** every list ID resolves to detail and every citation maps to a verified DB row\n- **Depends on:** 9, 11\n"
+            }
+          ],
+          "reason": "9"
+        },
+        {
+          "before": "work_b8b4e7022d1f9247e3e242d2d92e76d79a94828e474b4b3654d3e1bfff93ee77",
+          "after": "work_079d1dc36180c036db82c8644939d7bad6920c79037f7d45982723a35b6f4fea",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 625,
+              "line_end": 639,
+              "excerpt": "### Step 12: Skill justification list/detail\n- **Status:** done (2026-08-09; focused and full verification passed)\n- **Problem:** Add deterministic list/show queries for reviewed skills, claims, exact locators,\n  classifications, citation records, documented search absence, review provenance, and\n  exact/ambiguous/missing current-locator status.\n- **Type:** code\n- **Issue:** #18\n- **Flags:** --reviewers deep --isolation worktree\n- **Files:** `src/citation_needed/read_queries.py`, `src/citation_needed/breakdown.py`,\n  `src/citation_needed/models.py`, `src/citation_needed/cli.py`,\n  `tests/test_read_queries.py`, `tests/test_breakdown.py`\n- **Produces:** justify queries/CLI, JSON contract, tests\n- **Done when:** every list ID resolves to detail and every citation maps to a verified DB row\n- **Depends on:** 9, 11\n"
+            }
+          ],
+          "reason": "11"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": [
+        "`src/citation_needed/read_queries.py`",
+        "`src/citation_needed/breakdown.py`"
+      ],
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers deep --isolation worktree",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "2703c307b73becf2bc65beaf9b5b00635e726b8d53c963ad28b8273bbe241336",
+      "heading": "### Step 12: Skill justification list/detail"
+    },
+    {
+      "work_id": "work_7943269642cab3b75cd033fcf3ddba91555ee13305f34903b6ae8b5977cc698c",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 640,
+          "line_end": 653,
+          "excerpt": "### Step 13: Update selector over existing skills\n- **Status:** done (2026-08-09; focused and full verification passed)\n- **Problem:** Add a terminal selector that picks an artifact then prints the exact\n  `/citation-review` or `/citation-distill` command; do not invoke Claude or duplicate prompts,\n  calibration, or writes.\n- **Type:** code\n- **Issue:** #19\n- **Flags:** --reviewers code\n- **Files:** `src/citation_needed/update_select.py`, `src/citation_needed/cli.py`,\n  `tests/test_update_select.py`, `docs/observatory-contract.md`\n- **Produces:** `cite update-select`, skill handoff contract\n- **Done when:** cancel writes nothing and each selection emits the correct canonical skill command\n- **Depends on:** 8, 12\n"
+        }
+      ],
+      "title": "Update selector over existing skills",
+      "summary": "### Step 13: Update selector over existing skills\n- **Status:** done (2026-08-09; focused and full verification passed)\n- **Problem:** Add a terminal selector that picks an artifact then prints the exact\n  `/citation-review` or `/citation-distill` command; do not invoke Claude or duplicate prompts,\n  calibration, or writes.\n- **Type:** code\n- **Issue:** #19\n- **Flags:** --reviewers code\n- **Files:** `src/citation_needed/update_select.py`, `src/citation_needed/cli.py`,\n  `tests/test_update_select.py`, `docs/observatory-contract.md`\n- **Produces:** `cite update-select`, skill handoff contract\n- **Done when:** cancel writes nothing and each selection emits the correct canonical skill command\n- **Depends on:** 8, 12\n",
+      "acceptance": "cancel writes nothing and each selection emits the correct canonical skill command",
+      "kind": "task",
+      "status": "done",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_1e3044dedb249146e9798285eedd2f7963c71551ed8f47df716326f5cde00e33",
+          "after": "work_7943269642cab3b75cd033fcf3ddba91555ee13305f34903b6ae8b5977cc698c",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 640,
+              "line_end": 653,
+              "excerpt": "### Step 13: Update selector over existing skills\n- **Status:** done (2026-08-09; focused and full verification passed)\n- **Problem:** Add a terminal selector that picks an artifact then prints the exact\n  `/citation-review` or `/citation-distill` command; do not invoke Claude or duplicate prompts,\n  calibration, or writes.\n- **Type:** code\n- **Issue:** #19\n- **Flags:** --reviewers code\n- **Files:** `src/citation_needed/update_select.py`, `src/citation_needed/cli.py`,\n  `tests/test_update_select.py`, `docs/observatory-contract.md`\n- **Produces:** `cite update-select`, skill handoff contract\n- **Done when:** cancel writes nothing and each selection emits the correct canonical skill command\n- **Depends on:** 8, 12\n"
+            }
+          ],
+          "reason": "8"
+        },
+        {
+          "before": "work_079d1dc36180c036db82c8644939d7bad6920c79037f7d45982723a35b6f4fea",
+          "after": "work_7943269642cab3b75cd033fcf3ddba91555ee13305f34903b6ae8b5977cc698c",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 640,
+              "line_end": 653,
+              "excerpt": "### Step 13: Update selector over existing skills\n- **Status:** done (2026-08-09; focused and full verification passed)\n- **Problem:** Add a terminal selector that picks an artifact then prints the exact\n  `/citation-review` or `/citation-distill` command; do not invoke Claude or duplicate prompts,\n  calibration, or writes.\n- **Type:** code\n- **Issue:** #19\n- **Flags:** --reviewers code\n- **Files:** `src/citation_needed/update_select.py`, `src/citation_needed/cli.py`,\n  `tests/test_update_select.py`, `docs/observatory-contract.md`\n- **Produces:** `cite update-select`, skill handoff contract\n- **Done when:** cancel writes nothing and each selection emits the correct canonical skill command\n- **Depends on:** 8, 12\n"
+            }
+          ],
+          "reason": "12"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": [
+        "`src/citation_needed/update_select.py`",
+        "`src/citation_needed/cli.py`"
+      ],
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers code",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "564d4fa5bc1460f18099f69ec623ff6e0e9beb6ca1f5760b2cb14fe6f11bd259",
+      "heading": "### Step 13: Update selector over existing skills"
+    },
+    {
+      "work_id": "work_ea8e65ec6c134e0294e34d4330ae623e43e747caf32a01c0715e75f61ed0ca85",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 654,
+          "line_end": 674,
+          "excerpt": "### Step 14: Observatory artifact export\n- **Status:** CODE COMPLETE — **NOT DONE** (code merged to master as `3e3cf12` on 2026-08-10,\n  full suite green at 387 passed / 2 deselected; exporter, fixture contracts, and all automated\n  verification pass). The exit criterion is unmet: every automated test runs against synthetic or\n  empty fixtures, and `Done when` requires a **real** reviewed `skill` artifact to round-trip.\n  No `/citation-review` run has ever produced one. Verified 2026-08-10 against the production\n  surface: `cite justify list --type skill --json` returns `{\"artifact_type\": \"skill\",\n  \"items\": [], \"schema_version\": 1}`. The 13 breakdowns in `breakdowns/` are all artifact type\n  `rule`; none are type `skill`. Clearing this requires Step 15's real populated smoke — do not\n  mark DONE until then.\n- **Problem:** Write one bounded, versioned overview + justification list/detail artifact and\n  contract fixtures. dev-observatory alone owns labels, registry integration, and setup-button removal.\n- **Type:** code\n- **Issue:** #20 (OPEN — stays open until the exit criterion below is met)\n- **Flags:** --reviewers code\n- **Files:** `src/citation_needed/observatory_export.py`, `src/citation_needed/cli.py`,\n  `tests/test_observatory_export.py`, `docs/observatory-contract.md`\n- **Produces:** artifact exporter and fixtures\n- **Done when:** a real reviewed skill round-trips and export performs no DB writes\n- **Depends on:** 12, 13\n"
+        }
+      ],
+      "title": "Observatory artifact export",
+      "summary": "### Step 14: Observatory artifact export\n- **Status:** CODE COMPLETE — **NOT DONE** (code merged to master as `3e3cf12` on 2026-08-10,\n  full suite green at 387 passed / 2 deselected; exporter, fixture contracts, and all automated\n  verification pass). The exit criterion is unmet: every automated test runs against synthetic or\n  empty fixtures, and `Done when` requires a **real** reviewed `skill` artifact to round-trip.\n  No `/citation-review` run has ever produced one. Verified 2026-08-10 against the production\n  surface: `cite justify list --type skill --json` returns `{\"artifact_type\": \"skill\",\n  \"items\": [], \"schema_version\": 1}`. The 13 breakdowns in `breakdowns/` are all artifact type\n  `rule`; none are type `skill`. Clearing this requires Step 15's real populated smoke — do not\n  mark DONE until then.\n- **Problem:** Write one bounded, versioned overview + justification list/detail artifact and\n  contract fixtures. dev-observatory alone owns labels, registry integration, and setup-button removal.\n- **Type:** code\n- **Issue:** #20 (OPEN — stays open until the exit criterion below is met)\n- **Flags:** --reviewers code\n- **Files:** `src/citation_needed/observatory_export.py`, `src/citation_needed/cli.py`,\n  `tests/test_observatory_export.py`, `docs/observatory-contract.md`\n- **Produces:** artifact exporter and fixtures\n- **Done when:** a real reviewed skill round-trips and export performs no DB writes\n- **Depends on:** 12, 13\n",
+      "acceptance": "a real reviewed skill round-trips and export performs no DB writes",
+      "kind": "task",
+      "status": "unknown",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_079d1dc36180c036db82c8644939d7bad6920c79037f7d45982723a35b6f4fea",
+          "after": "work_ea8e65ec6c134e0294e34d4330ae623e43e747caf32a01c0715e75f61ed0ca85",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 654,
+              "line_end": 674,
+              "excerpt": "### Step 14: Observatory artifact export\n- **Status:** CODE COMPLETE — **NOT DONE** (code merged to master as `3e3cf12` on 2026-08-10,\n  full suite green at 387 passed / 2 deselected; exporter, fixture contracts, and all automated\n  verification pass). The exit criterion is unmet: every automated test runs against synthetic or\n  empty fixtures, and `Done when` requires a **real** reviewed `skill` artifact to round-trip.\n  No `/citation-review` run has ever produced one. Verified 2026-08-10 against the production\n  surface: `cite justify list --type skill --json` returns `{\"artifact_type\": \"skill\",\n  \"items\": [], \"schema_version\": 1}`. The 13 breakdowns in `breakdowns/` are all artifact type\n  `rule`; none are type `skill`. Clearing this requires Step 15's real populated smoke — do not\n  mark DONE until then.\n- **Problem:** Write one bounded, versioned overview + justification list/detail artifact and\n  contract fixtures. dev-observatory alone owns labels, registry integration, and setup-button removal.\n- **Type:** code\n- **Issue:** #20 (OPEN — stays open until the exit criterion below is met)\n- **Flags:** --reviewers code\n- **Files:** `src/citation_needed/observatory_export.py`, `src/citation_needed/cli.py`,\n  `tests/test_observatory_export.py`, `docs/observatory-contract.md`\n- **Produces:** artifact exporter and fixtures\n- **Done when:** a real reviewed skill round-trips and export performs no DB writes\n- **Depends on:** 12, 13\n"
+            }
+          ],
+          "reason": "12"
+        },
+        {
+          "before": "work_7943269642cab3b75cd033fcf3ddba91555ee13305f34903b6ae8b5977cc698c",
+          "after": "work_ea8e65ec6c134e0294e34d4330ae623e43e747caf32a01c0715e75f61ed0ca85",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 654,
+              "line_end": 674,
+              "excerpt": "### Step 14: Observatory artifact export\n- **Status:** CODE COMPLETE — **NOT DONE** (code merged to master as `3e3cf12` on 2026-08-10,\n  full suite green at 387 passed / 2 deselected; exporter, fixture contracts, and all automated\n  verification pass). The exit criterion is unmet: every automated test runs against synthetic or\n  empty fixtures, and `Done when` requires a **real** reviewed `skill` artifact to round-trip.\n  No `/citation-review` run has ever produced one. Verified 2026-08-10 against the production\n  surface: `cite justify list --type skill --json` returns `{\"artifact_type\": \"skill\",\n  \"items\": [], \"schema_version\": 1}`. The 13 breakdowns in `breakdowns/` are all artifact type\n  `rule`; none are type `skill`. Clearing this requires Step 15's real populated smoke — do not\n  mark DONE until then.\n- **Problem:** Write one bounded, versioned overview + justification list/detail artifact and\n  contract fixtures. dev-observatory alone owns labels, registry integration, and setup-button removal.\n- **Type:** code\n- **Issue:** #20 (OPEN — stays open until the exit criterion below is met)\n- **Flags:** --reviewers code\n- **Files:** `src/citation_needed/observatory_export.py`, `src/citation_needed/cli.py`,\n  `tests/test_observatory_export.py`, `docs/observatory-contract.md`\n- **Produces:** artifact exporter and fixtures\n- **Done when:** a real reviewed skill round-trips and export performs no DB writes\n- **Depends on:** 12, 13\n"
+            }
+          ],
+          "reason": "13"
+        }
+      ],
+      "unresolved_dependencies": [],
+      "write_paths": [
+        "`src/citation_needed/observatory_export.py`",
+        "`src/citation_needed/cli.py`"
+      ],
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "code",
+      "flags": "--reviewers code",
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "37d9f3ddbb77ec0f32d74d87f56ee96fa19f032b7712d70beeec6fec6cd7f4ce",
+      "heading": "### Step 14: Observatory artifact export"
+    },
+    {
+      "work_id": "work_e3fb552ddd19df90c10010c7e21614d0a94abc439bdfce2cd465ea2c42bcb494",
+      "project_slug": "citation-needed",
+      "source_refs": [
+        {
+          "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+          "locator": "citation-needed/docs/plans/master_plan.md",
+          "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+          "observed_at": "2026-10-14T17:53:49.759902Z",
+          "line_start": 675,
+          "line_end": 831,
+          "excerpt": "### Step 15: Real populated smoke\n- **Problem:** Run calibration, review one real skill, then verify overview and justification output.\n- **Type:** operator\n- **Issue:** #24\n- **Produces:** operator evidence only\n- **Done when:** recent activity is non-empty and every displayed citation is fetch/API/internal-read verified\n- **Depends on:** Step 14 implementation available; its final DONE acceptance depends on this real smoke, not the other way around\n\n### Validation and rollback boundary\n\nEvery retained unit keeps its Problem, prerequisite, outputs and Done-when acceptance. On a failed integrity/privacy/calibration check, retain evidence and stop the dependent operation; do not reset or mutate the protected store/target to manufacture success. Revert only the bounded implementation change under its owning build process. Effort is recorded separately in the sidecar.\n\n| Item | Risk | Mitigation |\n|---|---|---|\n| choice_key reuse quality on busy artifacts (10+ choices) | Folded-into-extraction reuse judgment may mis-merge/mis-mint keys | Step 4 prototypes both fold-in and dedicated-diff-pass shapes against a 2-choice and a 10+-choice artifact before committing (`schema-draft.md` §9); acceptance test: reworded re-review produces zero duplicates |\n| OpenAlex key onboarding | Fallback backend dead until key exists | Step 3 fails loud (not silent-skip) when `CITATION_NEEDED_OPENALEX_KEY` unset AND a lookup reaches the OpenAlex tier; README documents signup; S2+Crossref cover the common case keyless |\n| Crossref limits drift | Hardcoded numbers go stale (verified conflict already) | Client throttles from live `X-Rate-Limit-*` headers only |\n| Garbage-anchor UNVERIFIED rows | Freezing unchecked \"expected\" values invalidates the gate | Step 5 done-when requires closing all 3 rows with real searches or swapping choices |\n| Corpus poisoning via calibration | Synthetic anchor citations leak into the compounding DB | Throwaway DB is mandatory in `calibrate` verbs; test asserts re"
+        }
+      ],
+      "title": "Real populated smoke",
+      "summary": "### Step 15: Real populated smoke\n- **Problem:** Run calibration, review one real skill, then verify overview and justification output.\n- **Type:** operator\n- **Issue:** #24\n- **Produces:** operator evidence only\n- **Done when:** recent activity is non-empty and every displayed citation is fetch/API/internal-read verified\n- **Depends on:** Step 14 implementation available; its final DONE acceptance depends on this real smoke, not the other way around\n\n### Validation and rollback boundary\n\nEvery retained unit keeps its Problem, prerequisite, outputs and Done-when acceptance. On a failed integrity/privacy/calibration check, retain evidence and stop the dependent operation; do not reset or mutate the protected store/target to manufacture success. Revert only the bounded implementation change under its owning build process. Effort is recorded separately in the sidecar.\n\n| Item | Risk | Mitigation |\n|---|---|---|\n| choice_key reuse quality on busy artifacts (10+ choices) | Folded-into-extraction reuse judgment may mis-merge/mis-mint keys | Step 4 prototypes both fold-in and dedicated-diff-pass shapes against a 2-choice and a 10+-choice artifact before committing (`schema-draft.md` §9); acceptance test: reworded re-review produces zero duplicates |\n| OpenAlex key onboarding | Fallback backend dead until key exists | Step 3 fails loud (not silent-skip) when `CITATION_NEEDED_OPENALEX_KEY` unset AND a lookup reaches the OpenAlex tier; README documents signup; S2+Crossref cover the common case keyless |\n| Crossref limits drift | Hardcoded numbers go stale (verified conflict already) | Client throttles from live `X-Rate-Limit-*` headers only |\n| Garbage-anchor UNVERIFIED rows | Freezing unchecked \"expected\" values invalidates the gate | Step 5 done-when requires closing all 3 rows with real searches or swapping choices |\n| Corpus poisoning via calibration | Synthetic anchor citations leak into the compounding DB | Throwaway DB is mandatory in `calibrate` verbs; test asserts re",
+      "acceptance": "recent activity is non-empty and every displayed citation is fetch/API/internal-read verified",
+      "kind": "task",
+      "status": "unknown",
+      "status_basis": "declared",
+      "parent_id": null,
+      "aliases": [],
+      "dependencies": [
+        {
+          "before": "work_ea8e65ec6c134e0294e34d4330ae623e43e747caf32a01c0715e75f61ed0ca85",
+          "after": "work_e3fb552ddd19df90c10010c7e21614d0a94abc439bdfce2cd465ea2c42bcb494",
+          "basis": "observed",
+          "evidence": [
+            {
+              "source_id": "src_d561af1682a81ef601c28c3f28ca5947ffe2d7dda5f7578317754d13374cc45c",
+              "locator": "citation-needed/docs/plans/master_plan.md",
+              "digest": "f3753b6ef35ab24762e8399a5a590e18b2dfd6334a56f5b375e8e0ae1a2f33de",
+              "observed_at": "2026-10-14T17:53:49.759902Z",
+              "line_start": 675,
+              "line_end": 831,
+              "excerpt": "### Step 15: Real populated smoke\n- **Problem:** Run calibration, review one real skill, then verify overview and justification output.\n- **Type:** operator\n- **Issue:** #24\n- **Produces:** operator evidence only\n- **Done when:** recent activity is non-empty and every displayed citation is fetch/API/internal-read verified\n- **Depends on:** Step 14 implementation available; its final DONE acceptance depends on this real smoke, not the other way around\n\n### Validation and rollback boundary\n\nEvery retained unit keeps its Problem, prerequisite, outputs and Done-when acceptance. On a failed integrity/privacy/calibration check, retain evidence and stop the dependent operation; do not reset or mutate the protected store/target to manufacture success. Revert only the bounded implementation change under its owning build process. Effort is recorded separately in the sidecar.\n\n| Item | Risk | Mitigation |\n|---|---|---|\n| choice_key reuse quality on busy artifacts (10+ choices) | Folded-into-extraction reuse judgment may mis-merge/mis-mint keys | Step 4 prototypes both fold-in and dedicated-diff-pass shapes against a 2-choice and a 10+-choice artifact before committing (`schema-draft.md` §9); acceptance test: reworded re-review produces zero duplicates |\n| OpenAlex key onboarding | Fallback backend dead until key exists | Step 3 fails loud (not silent-skip) when `CITATION_NEEDED_OPENALEX_KEY` unset AND a lookup reaches the OpenAlex tier; README documents signup; S2+Crossref cover the common case keyless |\n| Crossref limits drift | Hardcoded numbers go stale (verified conflict already) | Client throttles from live `X-Rate-Limit-*` headers only |\n| Garbage-anchor UNVERIFIED rows | Freezing unchecked \"expected\" values invalidates the gate | Step 5 done-when requires closing all 3 rows with real searches or swapping choices |\n| Corpus poisoning via calibration | Synthetic anchor citations leak into the compounding DB | Throwaway DB is mandatory in `calibrate` verbs; test asserts re"
+            }
+          ],
+          "reason": "Step 14 implementation available"
+        }
+      ],
+      "unresolved_dependencies": [
+        "its final DONE acceptance depends on this real smoke",
+        "not the other way around"
+      ],
+      "write_paths": null,
+      "shared_resources": [],
+      "approvals": [],
+      "goal_links": [],
+      "estimate": null,
+      "unit_type": "operator",
+      "flags": null,
+      "phase_key": null,
+      "rollup": null,
+      "source_digest": "c9dbd12ee6707a41eeb1ad500130500d006bc386bd4d99ee11c47a4e7f577a94",
+      "heading": "### Step 15: Real populated smoke"
+    }
+  ]
+}

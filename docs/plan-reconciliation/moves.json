@@ -1,0 +1,37 @@
+{
+  "project": "citation-needed",
+  "pre_status": "",
+  "moves": [
+    {
+      "source": "plan.md",
+      "destination": "docs/archived-plans/plan.md",
+      "sha256": "5a30403baf9f05edd706956a5f9485b801e2053a5879d17929efab09f5835e78",
+      "git_status": "",
+      "head": "90419c4312ccd837c61916ac2f92484e340ca17e"
+    },
+    {
+      "source": "documentation/justification-surfaces-plan.md",
+      "destination": "docs/archived-plans/documentation/justification-surfaces-plan.md",
+      "sha256": "847470954e32edacb5b426f3832e913eab739516cdfbc0ecd592366a9f2bfb87",
+      "git_status": "",
+      "head": "90419c4312ccd837c61916ac2f92484e340ca17e"
+    }
+  ],
+  "source_to_master": {
+    "plan.md": "docs/plans/master_plan.md",
+    "documentation/justification-surfaces-plan.md": "docs/plans/master_plan.md"
+  },
+  "affected_references": [
+    "docs/plans/master_plan.md",
+    "CLAUDE.md",
+    "README.md",
+    "docs/research/artifact-type-extensions.md",
+    "docs/research/context-cost-constraint.md",
+    "docs/research/corpus-survey.md",
+    "docs/research/integration-surface.md",
+    "docs/research/prior-art.md",
+    "docs/research/public-boundary.md",
+    "docs/research/schema-draft.md",
+    "src/citation_needed/discover.py"
+  ]
+}

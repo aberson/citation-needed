@@ -11,9 +11,9 @@ is a breakdown doc plus database rows, never an edit to the reviewed file — an
 citation persists to SQLite so the corpus compounds across reviews. "No literature found" is a
 recorded, legitimate finding, not a failure.
 
-> **Status:** built and usable, not yet finished. Canonical [plan.md](plan.md) Steps 1–10 are
+> **Status:** built and usable, not yet finished. Canonical [plan.md](docs/plans/master_plan.md) Steps 1–10 are
 > DONE; the justification-surfaces feature
-> ([documentation/justification-surfaces-plan.md](documentation/justification-surfaces-plan.md))
+> ([docs/justification-surfaces-plan.md](docs/plans/master_plan.md))
 > Steps 11–13 are done and **Step 14 is CODE COMPLETE but NOT DONE** — every test for it runs
 > against synthetic or empty fixtures, and its exit criterion needs a *real* reviewed `skill`
 > artifact to round-trip, which no `/citation-review` run has yet produced (#20). 389 tests pass

@@ -25,6 +25,21 @@ from citation_needed.models import MemoryDetails, PlanDetails, SkillDetails
 SESSION_ID = "740ce8b1-8ae8-41e5-a58b-7245a7601fee"
 
 
+def test_consolidated_master_discovered_without_archived_instructions(tmp_path: Path) -> None:
+    ws = tmp_path / "ws"
+    master = ws / "project" / "docs" / "plans" / "master_plan.md"
+    _write(master, "# Master\n\n### Step 1: Active work\n- **Problem:** Keep current scope.\n")
+    for lifecycle in ("completed", "archived-plans"):
+        _write(ws / "project" / "docs" / lifecycle / "CLAUDE.md", "# Historical instructions\n")
+        _write(ws / "project" / "docs" / lifecycle / "plan.md", "# Old plan\n")
+    report = discover.scan_workspace(ws, memory_root=tmp_path / "mem")
+    plans = [a.path for a in report.artifacts if a.artifact_type == "plan"]
+    assert plans == ["project/docs/plans/master_plan.md"]
+    assert not any(
+        "/completed/" in a.path or "/archived-plans/" in a.path for a in report.artifacts
+    )
+
+
 def _write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
